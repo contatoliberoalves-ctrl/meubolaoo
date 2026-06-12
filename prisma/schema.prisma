@@ -1,0 +1,125 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  player
+  admin
+}
+
+enum Stage {
+  group
+  r16
+  qf
+  sf
+  final
+}
+
+model Profile {
+  id         String   @id @db.Uuid
+  name       String
+  emblem     String   @default("⚽")
+  role       Role     @default(player)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+
+  predictions Prediction[]
+  user_badges UserBadge[]
+
+  @@map("profiles")
+}
+
+model Group {
+  code  String  @id
+  name  String
+  teams Team[]
+  matches Match[]
+
+  @@map("groups")
+}
+
+model Team {
+  id         String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name       String
+  flag       String
+  group_code String
+  group      Group   @relation(fields: [group_code], references: [code])
+
+  home_matches Match[] @relation("home")
+  away_matches Match[] @relation("away")
+
+  @@map("teams")
+}
+
+model Match {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  group_code   String?
+  group        Group?    @relation(fields: [group_code], references: [code])
+  stage        Stage     @default(group)
+  matchday     Int?
+  home_team_id String?   @db.Uuid
+  away_team_id String?   @db.Uuid
+  home_team    Team?     @relation("home", fields: [home_team_id], references: [id])
+  away_team    Team?     @relation("away", fields: [away_team_id], references: [id])
+  kickoff_at   DateTime  @db.Timestamptz(6)
+  home_score   Int?
+  away_score   Int?
+  locked       Boolean   @default(false)
+
+  predictions Prediction[]
+
+  @@map("matches")
+}
+
+model Prediction {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String   @db.Uuid
+  match_id   String   @db.Uuid
+  home       Int
+  away       Int
+  points     Int?
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+
+  user  Profile @relation(fields: [user_id], references: [id])
+  match Match   @relation(fields: [match_id], references: [id])
+
+  @@unique([user_id, match_id])
+  @@map("predictions")
+}
+
+model PrizeConfig {
+  slot        String @id
+  prize_label String
+
+  @@map("prizes_config")
+}
+
+model Badge {
+  id          String @id
+  title       String
+  description String
+  icon        String
+  sort_order  Int
+
+  user_badges UserBadge[]
+
+  @@map("badges")
+}
+
+model UserBadge {
+  user_id     String   @db.Uuid
+  badge_id    String
+  unlocked_at DateTime @default(now()) @db.Timestamptz(6)
+
+  user  Profile @relation(fields: [user_id], references: [id])
+  badge Badge   @relation(fields: [badge_id], references: [id])
+
+  @@id([user_id, badge_id])
+  @@map("user_badges")
+}
