@@ -13,7 +13,11 @@ export async function POST(req: Request) {
   }
 
   const supabase = createClient();
-  const { data, error } = await supabase.auth.signUp({ email, password });
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { emailRedirectTo: new URL("/app", req.url).toString() },
+  });
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
   const userId = data.user?.id;
