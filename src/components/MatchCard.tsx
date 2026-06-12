@@ -76,12 +76,15 @@ export default function MatchCard({ match }: { match: MatchDTO }) {
           {kickoff.toLocaleDateString("pt-BR", {
             day: "2-digit",
             month: "short",
+            timeZone: "UTC",
           })}{" "}
           ·{" "}
           {kickoff.toLocaleTimeString("pt-BR", {
             hour: "2-digit",
             minute: "2-digit",
-          })}
+            timeZone: "UTC",
+          })}{" "}
+          (horário de Brasília)
         </span>
         {(match.locked || hasResult) && (
           <span className="pill px-2 py-0.5 text-[11px]">
