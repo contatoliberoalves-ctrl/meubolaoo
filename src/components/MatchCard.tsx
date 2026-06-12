@@ -76,13 +76,13 @@ export default function MatchCard({ match }: { match: MatchDTO }) {
           {kickoff.toLocaleDateString("pt-BR", {
             day: "2-digit",
             month: "short",
-            timeZone: "UTC",
+            timeZone: "America/Sao_Paulo",
           })}{" "}
           ·{" "}
           {kickoff.toLocaleTimeString("pt-BR", {
             hour: "2-digit",
             minute: "2-digit",
-            timeZone: "UTC",
+            timeZone: "America/Sao_Paulo",
           })}{" "}
           (horário de Brasília)
         </span>
