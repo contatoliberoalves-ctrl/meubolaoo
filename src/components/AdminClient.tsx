@@ -63,6 +63,16 @@ function AdminMatchRow({ m, onChanged }: { m: MatchDTO; onChanged: () => void })
   );
 }
 
+type AdminUser = {
+  id: string;
+  name: string | null;
+  emblem: string | null;
+  role: string;
+  email: string;
+  created_at: string;
+  predictions_count: number;
+};
+
 export default function AdminClient({
   groups,
   prizes,
@@ -73,6 +83,7 @@ export default function AdminClient({
   const [group, setGroup] = useState("A");
   const [matches, setMatches] = useState<MatchDTO[]>([]);
   const [prizeState, setPrizeState] = useState(prizes);
+  const [users, setUsers] = useState<AdminUser[]>([]);
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/matches?group=${group}`);
@@ -80,9 +91,19 @@ export default function AdminClient({
     setMatches(j.matches ?? []);
   }, [group]);
 
+  const loadUsers = useCallback(async () => {
+    const res = await fetch("/api/admin/users");
+    const j = await res.json();
+    setUsers(j.users ?? []);
+  }, []);
+
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    loadUsers();
+  }, [loadUsers]);
 
   async function savePrize(slot: string, label: string) {
     setPrizeState((s) => ({ ...s, [slot]: label }));
@@ -133,6 +154,33 @@ export default function AdminClient({
             </select>
           </div>
         ))}
+      </div>
+
+      <h2 className="title mt-10 text-2xl">Usuários cadastrados ({users.length})</h2>
+      <div className="mt-3 grid gap-2">
+        {users.map((u) => (
+          <div
+            key={u.id}
+            className="card flex items-center justify-between gap-3 p-3 text-sm"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-xl">{u.emblem ?? "⚽"}</span>
+              <div>
+                <div className="font-bold">{u.name ?? "—"}</div>
+                <div className="text-white/60">{u.email}</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="chip">{u.predictions_count} palpites</span>
+              <span className={`chip ${u.role === "admin" ? "chip-active" : ""}`}>
+                {u.role}
+              </span>
+            </div>
+          </div>
+        ))}
+        {users.length === 0 && (
+          <p className="text-white/60">Nenhum usuário cadastrado ainda.</p>
+        )}
       </div>
 
       <h2 className="title mt-10 text-2xl">Mata-mata</h2>
