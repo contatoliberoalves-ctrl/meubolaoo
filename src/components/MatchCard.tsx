@@ -137,8 +137,6 @@ export default function MatchCard({ match }: { match: MatchDTO }) {
             <span className="text-xs text-white/50">
               🔒 Palpites fecham 5 min antes do início
             </span>
-          ) : saved ? (
-            <span className="text-xs font-bold text-green-400">✅ Palpite salvo!</span>
           ) : (
             <span className="text-xs text-white/50">
               {match.prediction ? "Palpite salvo" : "Crave o placar"}
@@ -148,11 +146,14 @@ export default function MatchCard({ match }: { match: MatchDTO }) {
 
         {!hasResult && !disabled && (
           <button
-            className="btn btn-go px-4 py-1.5 text-sm"
+            className={`btn px-4 py-1.5 text-sm font-bold ${
+              saved ? "border-0 bg-green-500 text-white" : "btn-go"
+            }`}
+            style={saved ? { backgroundColor: "#22c55e" } : undefined}
             onClick={save}
             disabled={saving || home === "" || away === ""}
           >
-            {saving ? "..." : saved ? "✓ salvo" : "Salvar"}
+            {saving ? "..." : saved ? "✅ Palpite salvo!" : "Salvar"}
           </button>
         )}
       </div>
