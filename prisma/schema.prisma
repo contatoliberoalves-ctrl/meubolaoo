@@ -31,7 +31,7 @@ model Profile {
   predictions Prediction[]
   user_badges UserBadge[]
 
-  @@map("profiles")
+  @@map("bolao_profiles")
 }
 
 model Group {
@@ -40,7 +40,7 @@ model Group {
   teams Team[]
   matches Match[]
 
-  @@map("groups")
+  @@map("bolao_groups")
 }
 
 model Team {
@@ -53,7 +53,7 @@ model Team {
   home_matches Match[] @relation("home")
   away_matches Match[] @relation("away")
 
-  @@map("teams")
+  @@map("bolao_teams")
 }
 
 model Match {
@@ -73,7 +73,7 @@ model Match {
 
   predictions Prediction[]
 
-  @@map("matches")
+  @@map("bolao_matches")
 }
 
 model Prediction {
@@ -90,14 +90,14 @@ model Prediction {
   match Match   @relation(fields: [match_id], references: [id])
 
   @@unique([user_id, match_id])
-  @@map("predictions")
+  @@map("bolao_predictions")
 }
 
 model PrizeConfig {
   slot        String @id
   prize_label String
 
-  @@map("prizes_config")
+  @@map("bolao_prizes_config")
 }
 
 model Badge {
@@ -109,7 +109,7 @@ model Badge {
 
   user_badges UserBadge[]
 
-  @@map("badges")
+  @@map("bolao_badges")
 }
 
 model UserBadge {
@@ -121,5 +121,5 @@ model UserBadge {
   badge Badge   @relation(fields: [badge_id], references: [id])
 
   @@id([user_id, badge_id])
-  @@map("user_badges")
+  @@map("bolao_user_badges")
 }

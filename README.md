@@ -21,13 +21,22 @@ Realtime) e **Prisma**. Deploy em **Vercel** (front/SSR) + **Supabase** (db/auth
 - Acertou só o resultado (V/E/D) = **2 pts**
 - Errou = **0**
 
-## 1. Criar o projeto Supabase
+## 1. Projeto Supabase (compartilhado)
 
+Este Bolão roda no **mesmo projeto Supabase** (`qijziqjpvtjwarkodzxp`) que já
+hospeda outra plataforma do professor. Para não colidir com as tabelas
+existentes (`profiles`, `badges`, etc.), **todas as tabelas do Bolão usam o
+prefixo `bolao_`** (`bolao_profiles`, `bolao_groups`, `bolao_teams`,
+`bolao_matches`, `bolao_predictions`, `bolao_prizes_config`, `bolao_badges`,
+`bolao_user_badges`), e a função helper de RLS chama-se `bolao_is_admin()`
+(em vez de `is_admin()`). O schema, RLS e o seed (12 grupos, 48 seleções,
+72 jogos da fase de grupos, 29 placeholders de mata-mata, 8 badges, 4 prêmios)
+já foram aplicados diretamente nesse projeto.
+
+Se for criar um projeto Supabase **próprio/novo** no futuro, basta:
 1. Acesse <https://supabase.com> → **New project**. Guarde a senha do banco.
-2. Em **Project Settings → API**, copie:
-   - `Project URL` → `NEXT_PUBLIC_SUPABASE_URL`
-   - `anon public key` → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - `service_role key` → `SUPABASE_SERVICE_ROLE_KEY`
+2. Em **Project Settings → API**, copie `Project URL`, `anon public key` e
+   `service_role key`.
 3. Em **Project Settings → Database → Connection string**, copie a string
    _pooled_ (porta 6543) para `DATABASE_URL` e a _direct_ (5432) para `DIRECT_URL`.
 4. (Opcional) Em **Authentication → Providers → Email**, desative "Confirm email"
@@ -35,7 +44,12 @@ Realtime) e **Prisma**. Deploy em **Vercel** (front/SSR) + **Supabase** (db/auth
 
 ## 2. Configurar variáveis de ambiente
 
-Copie `.env.example` para `.env` e preencha os valores.
+Copie `.env.example` para `.env` e preencha os valores. O `NEXT_PUBLIC_SUPABASE_URL`
+e o `NEXT_PUBLIC_SUPABASE_ANON_KEY` do projeto compartilhado já estão
+documentados em `.env` (gitignored); falta apenas:
+- `SUPABASE_SERVICE_ROLE_KEY` — em **Project Settings → API → service_role**.
+- `DATABASE_URL` / `DIRECT_URL` — em **Project Settings → Database → Connection
+  string**, usando a senha do banco do projeto `qijziqjpvtjwarkodzxp`.
 
 ```bash
 cp .env.example .env
@@ -43,36 +57,42 @@ cp .env.example .env
 
 ## 3. Banco de dados (migrations + seed + RLS)
 
+> No projeto compartilhado isso **já foi aplicado** (schema `bolao_*`, RLS e
+> seed). Os passos abaixo servem para recriar em outro projeto ou após
+> alterações no `schema.prisma`.
+
 ```bash
 npm install
 npx prisma generate
 
-# Cria as tabelas no Supabase a partir do schema
+# Cria/atualiza as tabelas bolao_* no Supabase a partir do schema
 npx prisma migrate dev --name init      # (ou `npx prisma db push`)
 
 # Popula grupos, 72 jogos, badges e prizes_config
 npx prisma db seed
 
-# Aplica RLS + helper is_admin() — cole o conteúdo no SQL editor do Supabase
+# Aplica RLS + helper bolao_is_admin() — cole o conteúdo no SQL editor do Supabase
 #   prisma/sql/rls.sql
 ```
 
 > O arquivo `prisma/sql/rls.sql` deve ser executado **no SQL editor do
-> Supabase** após as migrations. Ele ativa Row Level Security e cria a função
-> `is_admin()`. As mutações de admin no servidor usam a service-role key e
-> contornam o RLS; as políticas protegem o acesso direto (anon/auth).
+> Supabase** após as migrations. Ele ativa Row Level Security em todas as
+> tabelas `bolao_*` e cria a função `bolao_is_admin()`. As mutações de admin no
+> servidor usam a service-role key e contornam o RLS; as políticas protegem o
+> acesso direto (anon/auth).
 
 ### Realtime
 
 No painel do Supabase, em **Database → Replication**, habilite Realtime para as
-tabelas `predictions` e `matches` (o ranking e os jogos atualizam ao vivo).
+tabelas `bolao_predictions` e `bolao_matches` (o ranking e os jogos atualizam
+ao vivo). No projeto compartilhado isso já foi habilitado via migration.
 
 ## 4. Promover um usuário a admin
 
 Após o cadastro do usuário, no **SQL editor** do Supabase:
 
 ```sql
-update public.profiles
+update public.bolao_profiles
 set role = 'admin'
 where id = (
   select id from auth.users where email = 'contatoliberoalves@gmail.com'
@@ -98,7 +118,7 @@ where id = (
 prisma/
   schema.prisma     # modelo de dados
   seed.ts           # seed (72 jogos, badges, prizes_config, mata-mata)
-  sql/rls.sql       # RLS + is_admin()
+  sql/rls.sql       # RLS + bolao_is_admin()
 src/
   app/              # rotas (landing, /app/*, /api/*)
   components/       # Mascot, Figurinha, MatchCard, AuthModal, shells, etc.

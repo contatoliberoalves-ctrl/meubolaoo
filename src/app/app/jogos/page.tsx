@@ -51,8 +51,8 @@ export default function JogosPage() {
     const supabase = createClient();
     const channel = supabase
       .channel("jogos")
-      .on("postgres_changes", { event: "*", schema: "public", table: "matches" }, () => load())
-      .on("postgres_changes", { event: "*", schema: "public", table: "predictions" }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "bolao_matches" }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "bolao_predictions" }, () => load())
       .subscribe();
     return () => {
       supabase.removeChannel(channel);

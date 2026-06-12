@@ -36,8 +36,8 @@ export default function RankingClient({
     const supabase = createClient();
     const ch = supabase
       .channel("ranking")
-      .on("postgres_changes", { event: "*", schema: "public", table: "predictions" }, () => load())
-      .on("postgres_changes", { event: "*", schema: "public", table: "matches" }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "bolao_predictions" }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "bolao_matches" }, () => load())
       .subscribe();
     return () => {
       supabase.removeChannel(ch);
