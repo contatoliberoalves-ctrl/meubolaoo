@@ -106,10 +106,10 @@ where id = (
 3. Em **Settings → Environment Variables**, adicione todas as variáveis do
    `.env` (incluindo `CRON_SECRET`).
 4. Deploy. O `vercel.json` já configura o cron `/api/cron/lock-matches`
-   (a cada hora, limite do plano Hobby) que marca como `locked` os jogos com
-   kickoff em menos de 5 minutos. O bloqueio real do palpite é sempre
-   validado no servidor com base em `kickoff_at` (ver `isPredictable`), então
-   a frequência do cron afeta só o indicador visual 🔒.
+   (1x por dia à meia-noite UTC, limite do plano Hobby) que marca como
+   `locked` os jogos com kickoff em menos de 5 minutos. O bloqueio real do
+   palpite é sempre validado no servidor com base em `kickoff_at` (ver
+   `isPredictable`), então a frequência do cron afeta só o indicador visual 🔒.
 
 > O `build` roda `prisma generate` antes do `next build`. Todas as páginas/rotas
 > que tocam o banco usam `export const dynamic = "force-dynamic"`, então o build
