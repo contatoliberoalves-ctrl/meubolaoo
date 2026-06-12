@@ -37,6 +37,11 @@ export default function MatchCard({ match }: { match: MatchDTO }) {
 
   const hasResult = match.home_score != null && match.away_score != null;
   const disabled = !match.predictable;
+  const isSaved =
+    saved ||
+    (!!match.prediction &&
+      home === String(match.prediction.home) &&
+      away === String(match.prediction.away));
 
   function digit(v: string) {
     const d = v.replace(/[^0-9]/g, "").slice(-1);
@@ -147,13 +152,13 @@ export default function MatchCard({ match }: { match: MatchDTO }) {
         {!hasResult && !disabled && (
           <button
             className={`btn px-4 py-1.5 text-sm font-bold ${
-              saved ? "border-0 bg-green-500 text-white" : "btn-go"
+              isSaved ? "border-0 bg-green-500 text-white" : "btn-go"
             }`}
-            style={saved ? { backgroundColor: "#22c55e" } : undefined}
+            style={isSaved ? { backgroundColor: "#22c55e" } : undefined}
             onClick={save}
             disabled={saving || home === "" || away === ""}
           >
-            {saving ? "..." : saved ? "✅ Palpite salvo!" : "Salvar"}
+            {saving ? "..." : saved ? "✅ Palpite salvo!" : isSaved ? "✅ Salvo" : "Salvar"}
           </button>
         )}
       </div>
