@@ -12,22 +12,47 @@ const MDS = [
   { v: "3", label: "Rodada 3" },
 ];
 
+function dayKey(iso: string) {
+  return new Date(iso).toISOString().slice(0, 10);
+}
+
+function dayLabel(key: string) {
+  const d = new Date(`${key}T12:00:00Z`);
+  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", weekday: "short" });
+}
+
+function pickDefaultDay(keys: string[]) {
+  const today = new Date().toISOString().slice(0, 10);
+  return keys.find((k) => k >= today) ?? keys[0] ?? null;
+}
+
 export default function JogosPage() {
+  const [view, setView] = useState<"dia" | "grupo">("dia");
   const [group, setGroup] = useState("A");
   const [md, setMd] = useState("");
+  const [day, setDay] = useState<string | null>(null);
   const [matches, setMatches] = useState<MatchDTO[]>([]);
+  const [allGroupMatches, setAllGroupMatches] = useState<MatchDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [knockout, setKnockout] = useState<Record<string, MatchDTO[]>>({});
 
   const load = useCallback(async () => {
     setLoading(true);
-    const qs = new URLSearchParams({ group });
-    if (md) qs.set("md", md);
-    const res = await fetch(`/api/matches?${qs}`);
-    const j = await res.json();
-    setMatches(j.matches ?? []);
+    if (view === "dia") {
+      const res = await fetch(`/api/matches?stage=group`);
+      const j = await res.json();
+      const all: MatchDTO[] = j.matches ?? [];
+      setAllGroupMatches(all);
+      setDay((prev) => prev ?? pickDefaultDay(Array.from(new Set(all.map((m) => dayKey(m.kickoff_at)))).sort()));
+    } else {
+      const qs = new URLSearchParams({ group });
+      if (md) qs.set("md", md);
+      const res = await fetch(`/api/matches?${qs}`);
+      const j = await res.json();
+      setMatches(j.matches ?? []);
+    }
     setLoading(false);
-  }, [group, md]);
+  }, [view, group, md]);
 
   useEffect(() => {
     load();
@@ -59,6 +84,11 @@ export default function JogosPage() {
     };
   }, [load]);
 
+  const days = Array.from(new Set(allGroupMatches.map((m) => dayKey(m.kickoff_at)))).sort();
+  const matchesForDay = allGroupMatches
+    .filter((m) => day && dayKey(m.kickoff_at) === day)
+    .sort((a, b) => new Date(a.kickoff_at).getTime() - new Date(b.kickoff_at).getTime());
+
   return (
     <div>
       <div className="card mb-4 p-3 text-sm text-white/70">
@@ -67,37 +97,68 @@ export default function JogosPage() {
       </div>
 
       <div className="no-scrollbar mb-3 flex gap-2 overflow-x-auto pb-1">
-        {GROUP_CODES.map((g) => (
-          <button
-            key={g}
-            className={`chip ${group === g ? "chip-active" : ""}`}
-            onClick={() => setGroup(g)}
-          >
-            Grupo {g}
-          </button>
-        ))}
+        <button
+          className={`chip ${view === "dia" ? "chip-active" : ""}`}
+          onClick={() => setView("dia")}
+        >
+          📅 Por dia
+        </button>
+        <button
+          className={`chip ${view === "grupo" ? "chip-active" : ""}`}
+          onClick={() => setView("grupo")}
+        >
+          🏆 Por grupo
+        </button>
       </div>
 
-      <div className="no-scrollbar mb-5 flex gap-2 overflow-x-auto pb-1">
-        {MDS.map((m) => (
-          <button
-            key={m.v}
-            className={`chip ${md === m.v ? "chip-active" : ""}`}
-            onClick={() => setMd(m.v)}
-          >
-            {m.label}
-          </button>
-        ))}
-      </div>
+      {view === "dia" ? (
+        <div className="no-scrollbar mb-5 flex gap-2 overflow-x-auto pb-1">
+          {days.map((d) => (
+            <button
+              key={d}
+              className={`chip whitespace-nowrap ${day === d ? "chip-active" : ""}`}
+              onClick={() => setDay(d)}
+            >
+              {dayLabel(d)}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <>
+          <div className="no-scrollbar mb-3 flex gap-2 overflow-x-auto pb-1">
+            {GROUP_CODES.map((g) => (
+              <button
+                key={g}
+                className={`chip ${group === g ? "chip-active" : ""}`}
+                onClick={() => setGroup(g)}
+              >
+                Grupo {g}
+              </button>
+            ))}
+          </div>
+
+          <div className="no-scrollbar mb-5 flex gap-2 overflow-x-auto pb-1">
+            {MDS.map((m) => (
+              <button
+                key={m.v}
+                className={`chip ${md === m.v ? "chip-active" : ""}`}
+                onClick={() => setMd(m.v)}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
 
       {loading ? (
         <p className="text-white/60">Carregando…</p>
       ) : (
         <div className="grid gap-3">
-          {matches.map((m) => (
+          {(view === "dia" ? matchesForDay : matches).map((m) => (
             <MatchCard key={m.id} match={m} />
           ))}
-          {matches.length === 0 && (
+          {(view === "dia" ? matchesForDay : matches).length === 0 && (
             <p className="text-white/60">Nenhum jogo encontrado.</p>
           )}
         </div>
