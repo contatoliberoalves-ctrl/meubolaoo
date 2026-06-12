@@ -60,7 +60,7 @@ export default function MatchCard({ match }: { match: MatchDTO }) {
     setSaving(false);
     if (res.ok) {
       setSaved(true);
-      setTimeout(() => setSaved(false), 1500);
+      setTimeout(() => setSaved(false), 3000);
     } else {
       const j = await res.json().catch(() => ({}));
       setErr(j.error || "Erro ao salvar");
@@ -134,6 +134,8 @@ export default function MatchCard({ match }: { match: MatchDTO }) {
             <span className="text-xs text-white/50">
               🔒 Palpites fecham 5 min antes do início
             </span>
+          ) : saved ? (
+            <span className="text-xs font-bold text-green-400">✅ Palpite salvo!</span>
           ) : (
             <span className="text-xs text-white/50">
               {match.prediction ? "Palpite salvo" : "Crave o placar"}
