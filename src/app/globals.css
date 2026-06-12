@@ -1,0 +1,109 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg1: #0d1b3e;
+  --bg2: #1a3a6e;
+  --accent: #2563eb;
+  --sky: #7eb8f7;
+  --paper: #f8f9fa;
+  --ink: #0d1b3e;
+  --gold: #f5c85a;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  min-height: 100%;
+  color: var(--paper);
+  font-family: var(--font-archivo), system-ui, sans-serif;
+}
+
+body {
+  background: linear-gradient(150deg, var(--bg1) 0%, var(--bg2) 100%);
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 font-bold transition;
+    border-radius: 100px;
+  }
+  .btn-go {
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 10px 30px rgba(37, 99, 235, 0.45);
+  }
+  .btn-go:hover {
+    filter: brightness(1.08);
+  }
+  .btn-ghost {
+    @apply border;
+    border-color: rgba(255, 255, 255, 0.4);
+    color: #fff;
+    background: transparent;
+  }
+  .btn-ghost:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+  .card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 18px;
+  }
+  .pill {
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 100px;
+  }
+  .chip {
+    @apply px-4 py-2 text-sm font-semibold transition;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 100px;
+    color: #fff;
+  }
+  .chip-active {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .title {
+    font-weight: 900;
+    line-height: 0.92;
+    letter-spacing: -0.02em;
+  }
+}
+
+.score-input {
+  width: 48px;
+  height: 48px;
+  text-align: center;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--ink);
+  background: var(--paper);
+  border-radius: 12px;
+  border: none;
+  outline: none;
+}
+.score-input:disabled {
+  opacity: 0.55;
+}
+
+@media (max-width: 460px) {
+  .score-input {
+    width: 38px;
+    height: 38px;
+    font-size: 1.1rem;
+  }
+}
+
+/* hide scrollbar on horizontal tab scrollers */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
