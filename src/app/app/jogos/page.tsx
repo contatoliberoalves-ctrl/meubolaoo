@@ -13,7 +13,15 @@ const MDS = [
 ];
 
 function dayKey(iso: string) {
-  return new Date(iso).toISOString().slice(0, 10);
+  const d = new Date(iso);
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(d);
+  const get = (t: string) => parts.find((p) => p.type === t)?.value;
+  return `${get("year")}-${get("month")}-${get("day")}`;
 }
 
 function dayLabel(key: string) {
@@ -22,7 +30,7 @@ function dayLabel(key: string) {
 }
 
 function pickDefaultDay(keys: string[]) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = dayKey(new Date().toISOString());
   return keys.find((k) => k >= today) ?? keys[0] ?? null;
 }
 
