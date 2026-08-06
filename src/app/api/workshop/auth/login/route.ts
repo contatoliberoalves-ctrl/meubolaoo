@@ -7,18 +7,24 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   const { email, password, role } = await req.json().catch(() => ({}));
-  if (!email || !password) return NextResponse.json({ error: "Campos obrigatórios" }, { status: 400 });
+  if (!email || !password) {
+    return NextResponse.json({ error: "Campos obrigatórios" }, { status: 400 });
+  }
 
   let session: WSession;
 
   if (role === "admin") {
-    if (email !== process.env.WORKSHOP_ADMIN_EMAIL || password !== process.env.WORKSHOP_ADMIN_PASSWORD)
+    const adminEmail = process.env.WORKSHOP_ADMIN_EMAIL;
+    const adminPass = process.env.WORKSHOP_ADMIN_PASSWORD;
+    if (email !== adminEmail || password !== adminPass) {
       return NextResponse.json({ error: "Credenciais inválidas" }, { status: 401 });
+    }
     session = { role: "admin", id: "admin" };
   } else {
     const student = await prisma.wStudent.findUnique({ where: { email } });
-    if (!student || !(await bcrypt.compare(password, student.password)))
+    if (!student || !(await bcrypt.compare(password, student.password))) {
       return NextResponse.json({ error: "Email ou senha inválidos" }, { status: 401 });
+    }
     session = { role: "student", id: student.id, name: student.name };
   }
 

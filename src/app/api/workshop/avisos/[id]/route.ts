@@ -8,7 +8,13 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   const session = await getSession();
   if (session?.role !== "admin") return NextResponse.json({ error: "Proibido" }, { status: 403 });
   const body = await req.json();
-  const a = await prisma.wAnnouncement.update({ where: { id: params.id }, data: { ...(body.text !== undefined && { text: body.text }), ...(body.active !== undefined && { active: body.active }) } });
+  const a = await prisma.wAnnouncement.update({
+    where: { id: params.id },
+    data: {
+      ...(body.text !== undefined && { text: body.text }),
+      ...(body.active !== undefined && { active: body.active }),
+    },
+  });
   return NextResponse.json({ aviso: a });
 }
 
