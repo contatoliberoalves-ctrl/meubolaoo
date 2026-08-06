@@ -127,3 +127,99 @@ model UserBadge {
   @@id([user_id, badge_id])
   @@map("bolao_user_badges")
 }
+
+// ─── Workshop ────────────────────────────────────────────────────────────────
+
+enum WStatus {
+  agendada
+  ao_vivo
+  gravada
+
+  @@map("workshop_lesson_status")
+}
+
+enum WCommentStatus {
+  pending
+  approved
+  rejected
+
+  @@map("workshop_comment_status")
+}
+
+model WStudent {
+  id         String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name       String
+  email      String     @unique
+  password   String
+  points     Int        @default(0)
+  created_at DateTime   @default(now()) @db.Timestamptz(6)
+
+  watched  WWatched[]
+  comments WComment[]
+
+  @@map("workshop_students")
+}
+
+model WLesson {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  date        String
+  time        String
+  materia     String
+  palestrante String
+  youtube_url String   @default("")
+  status      WStatus  @default(agendada)
+  image_url   String   @default("")
+  sort_order  Int      @default(0)
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+
+  watched  WWatched[]
+  comments WComment[]
+
+  @@map("workshop_lessons")
+}
+
+model WWatched {
+  student_id String   @db.Uuid
+  lesson_id  String   @db.Uuid
+  watched_at DateTime @default(now()) @db.Timestamptz(6)
+
+  student WStudent @relation(fields: [student_id], references: [id])
+  lesson  WLesson  @relation(fields: [lesson_id], references: [id])
+
+  @@id([student_id, lesson_id])
+  @@map("workshop_watched")
+}
+
+model WMaterial {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  materia    String
+  title      String
+  url        String
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+
+  @@map("workshop_materials")
+}
+
+model WAnnouncement {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  text       String
+  active     Boolean  @default(true)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+
+  @@map("workshop_announcements")
+}
+
+model WComment {
+  id           String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  lesson_id    String         @db.Uuid
+  student_id   String         @db.Uuid
+  student_name String
+  text         String
+  status       WCommentStatus @default(pending)
+  created_at   DateTime       @default(now()) @db.Timestamptz(6)
+
+  lesson  WLesson  @relation(fields: [lesson_id], references: [id])
+  student WStudent @relation(fields: [student_id], references: [id])
+
+  @@map("workshop_comments")
+}

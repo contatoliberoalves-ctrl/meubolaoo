@@ -1,37 +1,41 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
+import { jwtVerify } from "jose";
 
-// Refreshes the Supabase auth session cookie on each request.
+const secret = new TextEncoder().encode(
+  process.env.WORKSHOP_JWT_SECRET ?? "workshop-dev-secret-change-in-production"
+);
+
+async function getSession(req: NextRequest) {
+  const cookie = req.cookies.get("workshop_session");
+  if (!cookie) return null;
+  try {
+    const { payload } = await jwtVerify(cookie.value, secret);
+    return payload as { role: string };
+  } catch {
+    return null;
+  }
+}
+
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({ request });
+  const { pathname } = request.nextUrl;
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) return response;
+  if (pathname.startsWith("/aluno")) {
+    const session = await getSession(request);
+    if (!session) return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.next();
+  }
 
-  const supabase = createServerClient(url, key, {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll();
-      },
-      setAll(
-        cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]
-      ) {
-        cookiesToSet.forEach(({ name, value }) =>
-          request.cookies.set(name, value)
-        );
-        response = NextResponse.next({ request });
-        cookiesToSet.forEach(({ name, value, options }) =>
-          response.cookies.set(name, value, options)
-        );
-      },
-    },
-  });
+  if (pathname.startsWith("/admin")) {
+    const session = await getSession(request);
+    if (!session || session.role !== "admin") {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+    return NextResponse.next();
+  }
 
-  await supabase.auth.getUser();
-  return response;
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
+  matcher: ["/aluno/:path*", "/admin/:path*"],
 };
