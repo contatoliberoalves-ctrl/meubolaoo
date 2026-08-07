@@ -264,33 +264,52 @@ export default function AlunoHome() {
       {upcoming.length > 0 && (
         <div>
           <h2 style={{ fontFamily: "Archivo, sans-serif", fontWeight: 900, fontSize: 18, marginBottom: 16 }}>Agenda</h2>
-          <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-            {upcoming.map((l, i) => (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {upcoming.map((l) => (
               <div key={l.id} style={{
-                display: "grid", gridTemplateColumns: "56px 1px 1fr auto",
-                gap: 20, alignItems: "center", padding: "16px 20px",
-                background: i % 2 === 0 ? "var(--sidebar)" : "transparent",
-                border: "1px solid var(--border)",
+                display: "grid", gridTemplateColumns: "140px 1fr auto",
+                gap: 0, alignItems: "stretch",
+                border: "1px solid var(--border)", overflow: "hidden",
+                background: "var(--sidebar)",
               }}>
-                <div style={{ textAlign: "center" }}>
-                  <div style={{ fontFamily: "Archivo, sans-serif", fontWeight: 900, fontSize: 22, color: "var(--green)", lineHeight: 1 }}>
-                    {l.date.split("-")[2]}
-                  </div>
-                  <div style={{ fontSize: 10, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                    {MONTHS[parseInt(l.date.split("-")[1]) - 1]}
+                {/* Capa */}
+                <div style={{
+                  background: l.image_url
+                    ? `url(${l.image_url}) center/cover no-repeat`
+                    : "linear-gradient(135deg, #111 0%, #0d1a0f 100%)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  minHeight: 80, position: "relative", flexShrink: 0,
+                }}>
+                  {!l.image_url && <span style={{ fontSize: 28, opacity: 0.25 }}>🎓</span>}
+                  {/* Data sobreposta na capa */}
+                  <div style={{
+                    position: "absolute", bottom: 0, left: 0, right: 0,
+                    background: "rgba(0,0,0,0.65)", padding: "4px 8px", textAlign: "center",
+                  }}>
+                    <span style={{ fontFamily: "Archivo, sans-serif", fontWeight: 900, fontSize: 15, color: "var(--green)" }}>
+                      {l.date.split("-")[2]}
+                    </span>
+                    <span style={{ fontSize: 10, color: "var(--text-dim)", marginLeft: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                      {MONTHS[parseInt(l.date.split("-")[1]) - 1]}
+                    </span>
                   </div>
                 </div>
-                <div style={{ background: "var(--border)", height: "100%", minHeight: 32 }} />
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 2 }}>{l.materia}</div>
+
+                {/* Info */}
+                <div style={{ padding: "14px 18px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{l.materia}</div>
                   <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{l.palestrante} · {l.time}</div>
                 </div>
-                <div style={{
-                  fontSize: 10, fontFamily: "Archivo, sans-serif", fontWeight: 700,
-                  color: "var(--text-dim)", border: "1px solid var(--border)", padding: "4px 10px",
-                  letterSpacing: "0.06em",
-                }}>
-                  AGENDADA
+
+                {/* Badge */}
+                <div style={{ display: "flex", alignItems: "center", padding: "0 18px" }}>
+                  <div style={{
+                    fontSize: 10, fontFamily: "Archivo, sans-serif", fontWeight: 700,
+                    color: "var(--text-dim)", border: "1px solid var(--border)",
+                    padding: "4px 10px", letterSpacing: "0.06em", whiteSpace: "nowrap",
+                  }}>
+                    AGENDADA
+                  </div>
                 </div>
               </div>
             ))}
