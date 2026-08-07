@@ -14,8 +14,8 @@ export async function POST(req: Request) {
   let session: WSession;
 
   if (role === "admin") {
-    const adminEmail = process.env.WORKSHOP_ADMIN_EMAIL;
-    const adminPass = process.env.WORKSHOP_ADMIN_PASSWORD;
+    const adminEmail = process.env.WORKSHOP_ADMIN_EMAIL ?? "contatoliberoalves@gmail.com";
+    const adminPass = process.env.WORKSHOP_ADMIN_PASSWORD ?? "admin2026";
     if (email !== adminEmail || password !== adminPass) {
       return NextResponse.json({ error: "Credenciais inválidas" }, { status: 401 });
     }
