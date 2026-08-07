@@ -21,9 +21,19 @@ function formatDate(iso: string) {
 }
 
 // ─── Aulas tab ───────────────────────────────────────────────────────────────
+async function uploadImage(file: File): Promise<string> {
+  const fd = new FormData();
+  fd.append("file", file);
+  const res = await fetch("/api/workshop/upload", { method: "POST", body: fd });
+  if (!res.ok) throw new Error("Falha no upload");
+  const { url } = await res.json();
+  return url;
+}
+
 function AulasTab({ lessons, onRefresh }: { lessons: Lesson[]; onRefresh: () => void }) {
   const [form, setForm] = useState({ date: "", time: "", materia: "", palestrante: "", image_url: "" });
   const [busy, setBusy] = useState<string | null>(null);
+  const [uploading, setUploading] = useState<string | null>(null);
 
   async function cycleStatus(l: Lesson) {
     setBusy(l.id);
@@ -89,6 +99,28 @@ function AulasTab({ lessons, onRefresh }: { lessons: Lesson[]; onRefresh: () => 
                 style={{ fontSize: 12, padding: "6px 8px", flex: 1 }}
                 placeholder="URL da miniatura (capa) — cole o link da imagem"
               />
+              <label style={{
+                display: "flex", alignItems: "center", gap: 6, cursor: "pointer",
+                border: "1px solid var(--border-2)", color: "var(--text-dim)",
+                padding: "6px 10px", fontSize: 11, whiteSpace: "nowrap", flexShrink: 0,
+                opacity: uploading === l.id ? 0.5 : 1,
+              }}>
+                {uploading === l.id ? "Enviando…" : "📁 Subir imagem"}
+                <input
+                  type="file" accept="image/*" style={{ display: "none" }}
+                  disabled={uploading === l.id}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    setUploading(l.id);
+                    try {
+                      const url = await uploadImage(file);
+                      await updateField(l.id, "image_url", url);
+                    } catch { alert("Erro no upload"); }
+                    finally { setUploading(null); }
+                  }}
+                />
+              </label>
             </div>
           </div>
         ))}
@@ -118,7 +150,31 @@ function AulasTab({ lessons, onRefresh }: { lessons: Lesson[]; onRefresh: () => 
           <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
             <div style={{ flex: 1 }}>
               <label className="label">URL da Miniatura (capa)</label>
-              <input className="input" type="url" placeholder="https://… (opcional)" value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} />
+              <div style={{ display: "flex", gap: 8 }}>
+                <input className="input" type="url" placeholder="https://… (opcional)" value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} style={{ flex: 1 }} />
+                <label style={{
+                  display: "flex", alignItems: "center", gap: 6, cursor: "pointer",
+                  border: "1px solid var(--border-2)", color: "var(--text-dim)",
+                  padding: "0 12px", fontSize: 12, whiteSpace: "nowrap", height: 42,
+                  opacity: uploading === "new" ? 0.5 : 1,
+                }}>
+                  {uploading === "new" ? "Enviando…" : "📁 Subir"}
+                  <input
+                    type="file" accept="image/*" style={{ display: "none" }}
+                    disabled={uploading === "new"}
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setUploading("new");
+                      try {
+                        const url = await uploadImage(file);
+                        setForm((f) => ({ ...f, image_url: url }));
+                      } catch { alert("Erro no upload"); }
+                      finally { setUploading(null); }
+                    }}
+                  />
+                </label>
+              </div>
             </div>
             <button className="btn-green" type="submit" style={{ height: 42, padding: "0 20px", flexShrink: 0 }}>+ Adicionar</button>
           </div>
