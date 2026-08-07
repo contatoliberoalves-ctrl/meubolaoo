@@ -31,7 +31,7 @@ export default function AulasPage() {
         return (
           <div key={day} style={{ marginBottom: 36 }}>
             <p className="label" style={{ marginBottom: 14 }}>{day}</p>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
               {dayLessons.map((l) => {
                 const watched = me?.watched.includes(l.id);
                 return (

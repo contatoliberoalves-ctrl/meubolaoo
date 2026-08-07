@@ -92,7 +92,7 @@ export default function AlunoHome() {
 
   const recentLessons = lessons
     .filter((l) => l.status === "gravada")
-    .slice(-4)
+    .slice(-6)
     .reverse();
 
   const upcomingLessons = lessons
@@ -231,17 +231,17 @@ export default function AlunoHome() {
               Ver todas →
             </Link>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 14 }}>
             {recentLessons.map((l) => (
               <Link key={l.id} href={`/aluno/aulas/${l.id}`} style={{ textDecoration: "none" }}>
                 <div className="card" style={{ overflow: "hidden", transition: "border-color 0.15s" }}>
                   {/* Thumbnail */}
                   <div style={{
-                    height: 100, background: "var(--highlight)",
+                    aspectRatio: "16/9", background: "var(--highlight)",
                     backgroundImage: l.image_url ? `url(${l.image_url})` : undefined,
                     backgroundSize: "cover", backgroundPosition: "center",
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 28,
+                    fontSize: 36,
                   }}>
                     {!l.image_url && "🎓"}
                   </div>
