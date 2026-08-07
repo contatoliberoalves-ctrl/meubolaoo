@@ -28,7 +28,7 @@ export default function AlunoLayout({ children }: { children: React.ReactNode })
         }}
       >
         <span style={{ fontFamily: "Archivo, sans-serif", fontWeight: 900, fontSize: 15, color: "var(--green)", letterSpacing: "-0.01em", whiteSpace: "nowrap" }}>
-          Jovem Advogado
+          Workshop
         </span>
         <div style={{ display: "flex", gap: 4, flex: 1 }}>
           {TABS.map((t) => {
