@@ -515,7 +515,14 @@ export default function AdminPage() {
           ))}
         </nav>
 
-        <div style={{ padding: "0 20px" }}>
+        <div style={{ padding: "0 20px", display: "flex", flexDirection: "column", gap: 8 }}>
+          <button
+            className="btn-outline"
+            onClick={() => window.open("/aluno", "_blank")}
+            style={{ width: "100%", fontSize: 13, color: "var(--green)", borderColor: "var(--green)" }}
+          >
+            👁 Ver como aluno
+          </button>
           <button className="btn-outline" onClick={sair} style={{ width: "100%", fontSize: 13 }}>Sair</button>
         </div>
       </aside>
