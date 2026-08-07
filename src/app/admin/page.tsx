@@ -239,12 +239,13 @@ function AvisosTab({ avisos, onRefresh }: { avisos: Aviso[]; onRefresh: () => vo
 
 // ─── Materiais tab ────────────────────────────────────────────────────────────
 function MateriaisTab({ materiais, onRefresh }: { materiais: Material[]; onRefresh: () => void }) {
-  const [form, setForm] = useState({ materia: "", title: "", url: "" });
+  const [form, setForm] = useState({ materia: "", title: "", url: "", image_url: "" });
+  const [uploading, setUploading] = useState(false);
 
   async function add(e: React.FormEvent) {
     e.preventDefault();
     await fetch("/api/workshop/materiais", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
-    setForm({ materia: "", title: "", url: "" }); onRefresh();
+    setForm({ materia: "", title: "", url: "", image_url: "" }); onRefresh();
   }
 
   async function del(id: string) {
@@ -256,7 +257,10 @@ function MateriaisTab({ materiais, onRefresh }: { materiais: Material[]; onRefre
       <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 24 }}>
         {materiais.map((m) => (
           <div key={m.id} className="card" style={{ padding: "12px 16px", display: "flex", alignItems: "center", gap: 12 }}>
-            <div className="badge-green" style={{ fontSize: 10, padding: "2px 6px" }}>PDF</div>
+            {m.image_url
+              ? <img src={m.image_url} alt="capa" style={{ width: 64, height: 36, objectFit: "cover", border: "1px solid var(--border)", flexShrink: 0 }} />
+              : <div className="badge-green" style={{ fontSize: 10, padding: "2px 6px" }}>PDF</div>
+            }
             <span style={{ color: "var(--text-dim)", fontSize: 12, minWidth: 100 }}>{m.materia}</span>
             <span style={{ flex: 1, fontSize: 13 }}>{m.title}</span>
             <a href={m.url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--green-dark)", fontSize: 12 }}>↗</a>
@@ -268,21 +272,50 @@ function MateriaisTab({ materiais, onRefresh }: { materiais: Material[]; onRefre
 
       <div className="card" style={{ padding: "20px" }}>
         <p className="label" style={{ marginBottom: 14 }}>Novo material</p>
-        <form onSubmit={add} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 2fr auto", gap: 10 }}>
-          <div>
-            <label className="label">Matéria</label>
-            <input className="input" placeholder="Ex: Contratos" value={form.materia} onChange={(e) => setForm({ ...form, materia: e.target.value })} required />
+        <form onSubmit={add} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 2fr", gap: 10 }}>
+            <div>
+              <label className="label">Matéria</label>
+              <input className="input" placeholder="Ex: Contratos" value={form.materia} onChange={(e) => setForm({ ...form, materia: e.target.value })} required />
+            </div>
+            <div>
+              <label className="label">Título</label>
+              <input className="input" placeholder="Ex: Guia de Contratos" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
+            </div>
+            <div>
+              <label className="label">URL do PDF</label>
+              <input className="input" type="url" placeholder="https://…" value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })} required />
+            </div>
           </div>
-          <div>
-            <label className="label">Título</label>
-            <input className="input" placeholder="Ex: Guia de Contratos" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
-          </div>
-          <div>
-            <label className="label">URL do PDF</label>
-            <input className="input" type="url" placeholder="https://…" value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })} required />
-          </div>
-          <div style={{ alignSelf: "flex-end" }}>
-            <button className="btn-green" type="submit" style={{ height: 42, padding: "0 20px" }}>+ Adicionar</button>
+          <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
+            <div style={{ flex: 1 }}>
+              <label className="label">URL da Capa (imagem)</label>
+              <div style={{ display: "flex", gap: 8 }}>
+                <input className="input" type="url" placeholder="https://… (opcional)" value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} style={{ flex: 1 }} />
+                <label style={{
+                  display: "flex", alignItems: "center", gap: 6, cursor: "pointer",
+                  border: "1px solid var(--border-2)", color: "var(--text-dim)",
+                  padding: "0 12px", fontSize: 12, whiteSpace: "nowrap", height: 42,
+                  opacity: uploading ? 0.5 : 1,
+                }}>
+                  {uploading ? "Enviando…" : "📁 Subir"}
+                  <input type="file" accept="image/*" style={{ display: "none" }} disabled={uploading}
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0]; if (!file) return;
+                      setUploading(true);
+                      try {
+                        const fd = new FormData(); fd.append("file", file);
+                        const res = await fetch("/api/workshop/upload", { method: "POST", body: fd });
+                        const { url } = await res.json();
+                        setForm((f) => ({ ...f, image_url: url }));
+                      } catch { alert("Erro no upload"); }
+                      finally { setUploading(false); }
+                    }}
+                  />
+                </label>
+              </div>
+            </div>
+            <button className="btn-green" type="submit" style={{ height: 42, padding: "0 20px", flexShrink: 0 }}>+ Adicionar</button>
           </div>
         </form>
       </div>

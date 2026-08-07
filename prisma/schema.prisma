@@ -195,6 +195,7 @@ model WMaterial {
   materia    String
   title      String
   url        String
+  image_url  String   @default("")
   created_at DateTime @default(now()) @db.Timestamptz(6)
 
   @@map("workshop_materials")
