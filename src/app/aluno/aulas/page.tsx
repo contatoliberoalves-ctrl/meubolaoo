@@ -16,7 +16,7 @@ export default function AulasPage() {
       fetch("/api/workshop/me").then((r) => r.json()),
     ]);
     setLessons(al.aulas ?? []);
-    setMe(me);
+    setMe(me.role === "admin" ? { watched: [] } : me);
   }, []);
 
   useEffect(() => { load(); }, [load]);

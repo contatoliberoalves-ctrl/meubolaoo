@@ -34,7 +34,7 @@ export default function AulaDetail() {
     ]);
     const found = (aulas.aulas ?? []).find((a: Lesson) => a.id === id);
     setLesson(found ?? null);
-    setMe(meRes);
+    setMe(meRes.role === "admin" ? { id: "admin", name: "Admin", watched: [] } : meRes);
     setComments(comRes.comentarios ?? []);
   }, [id]);
 

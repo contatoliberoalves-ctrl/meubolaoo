@@ -48,7 +48,10 @@ export default function AlunoHome() {
       fetch("/api/workshop/aulas").then((r) => r.json()),
       fetch("/api/workshop/avisos").then((r) => r.json()),
     ]);
-    setStudent(me);
+    // Admin preview: provide default student shape
+    setStudent(me.role === "admin"
+      ? { id: "admin", name: "Admin (preview)", points: 0, watched: [] }
+      : me);
     setLessons(aulas.aulas ?? []);
     setAvisos((av.avisos ?? []).filter((a: Aviso) => a.active));
   }, []);
