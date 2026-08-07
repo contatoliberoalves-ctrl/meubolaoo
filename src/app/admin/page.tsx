@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
-type Lesson = { id: string; date: string; time: string; materia: string; palestrante: string; youtube_url: string; status: string };
+type Lesson = { id: string; date: string; time: string; materia: string; palestrante: string; youtube_url: string; image_url: string; status: string };
 type Student = { id: string; name: string; email: string; points: number; watched: number; total: number; progress: number };
 type Material = { id: string; materia: string; title: string; url: string };
 type Aviso = { id: string; text: string; active: boolean; created_at: string };
@@ -22,7 +22,7 @@ function formatDate(iso: string) {
 
 // ─── Aulas tab ───────────────────────────────────────────────────────────────
 function AulasTab({ lessons, onRefresh }: { lessons: Lesson[]; onRefresh: () => void }) {
-  const [form, setForm] = useState({ date: "", time: "", materia: "", palestrante: "" });
+  const [form, setForm] = useState({ date: "", time: "", materia: "", palestrante: "", image_url: "" });
   const [busy, setBusy] = useState<string | null>(null);
 
   async function cycleStatus(l: Lesson) {
@@ -52,9 +52,9 @@ function AulasTab({ lessons, onRefresh }: { lessons: Lesson[]; onRefresh: () => 
     e.preventDefault();
     await fetch("/api/workshop/aulas", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify({ ...form }),
     });
-    setForm({ date: "", time: "", materia: "", palestrante: "" });
+    setForm({ date: "", time: "", materia: "", palestrante: "", image_url: "" });
     onRefresh();
   }
 
@@ -62,44 +62,65 @@ function AulasTab({ lessons, onRefresh }: { lessons: Lesson[]; onRefresh: () => 
     <div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 28 }}>
         {lessons.map((l) => (
-          <div key={l.id} className="card" style={{ padding: "14px 16px", display: "grid", gridTemplateColumns: "80px 80px 1fr 1fr 1fr auto auto", gap: 10, alignItems: "center" }}>
-            <input className="input" defaultValue={l.date} onBlur={(e) => updateField(l.id, "date", e.target.value)} style={{ fontSize: 12, padding: "6px 8px" }} />
-            <input className="input" defaultValue={l.time} onBlur={(e) => updateField(l.id, "time", e.target.value)} style={{ fontSize: 12, padding: "6px 8px" }} />
-            <input className="input" defaultValue={l.materia} onBlur={(e) => updateField(l.id, "materia", e.target.value)} style={{ fontSize: 12, padding: "6px 8px" }} placeholder="Matéria" />
-            <input className="input" defaultValue={l.palestrante} onBlur={(e) => updateField(l.id, "palestrante", e.target.value)} style={{ fontSize: 12, padding: "6px 8px" }} placeholder="Palestrante" />
-            <input className="input" defaultValue={l.youtube_url} onBlur={(e) => updateField(l.id, "youtube_url", e.target.value)} style={{ fontSize: 12, padding: "6px 8px" }} placeholder="URL YouTube" />
-            <button
-              onClick={() => cycleStatus(l)} disabled={busy === l.id}
-              style={{ background: "none", border: `1px solid ${STATUS_COLOR[l.status]}`, color: STATUS_COLOR[l.status], padding: "6px 10px", cursor: "pointer", fontSize: 11, fontFamily: "Archivo, sans-serif", fontWeight: 700, whiteSpace: "nowrap" }}
-            >
-              {l.status === "ao_vivo" && <span className="pulse">● </span>}{STATUS_LABEL[l.status]}
-            </button>
-            <button onClick={() => del(l.id)} style={{ background: "none", border: "none", color: "var(--text-dim)", cursor: "pointer", fontSize: 16, padding: "0 4px" }}>✕</button>
+          <div key={l.id} className="card" style={{ padding: "14px 16px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "80px 80px 1fr 1fr 1fr auto auto", gap: 10, alignItems: "center", marginBottom: 8 }}>
+              <input className="input" defaultValue={l.date} onBlur={(e) => updateField(l.id, "date", e.target.value)} style={{ fontSize: 12, padding: "6px 8px" }} />
+              <input className="input" defaultValue={l.time} onBlur={(e) => updateField(l.id, "time", e.target.value)} style={{ fontSize: 12, padding: "6px 8px" }} />
+              <input className="input" defaultValue={l.materia} onBlur={(e) => updateField(l.id, "materia", e.target.value)} style={{ fontSize: 12, padding: "6px 8px" }} placeholder="Matéria" />
+              <input className="input" defaultValue={l.palestrante} onBlur={(e) => updateField(l.id, "palestrante", e.target.value)} style={{ fontSize: 12, padding: "6px 8px" }} placeholder="Palestrante" />
+              <input className="input" defaultValue={l.youtube_url} onBlur={(e) => updateField(l.id, "youtube_url", e.target.value)} style={{ fontSize: 12, padding: "6px 8px" }} placeholder="URL YouTube" />
+              <button
+                onClick={() => cycleStatus(l)} disabled={busy === l.id}
+                style={{ background: "none", border: `1px solid ${STATUS_COLOR[l.status]}`, color: STATUS_COLOR[l.status], padding: "6px 10px", cursor: "pointer", fontSize: 11, fontFamily: "Archivo, sans-serif", fontWeight: 700, whiteSpace: "nowrap" }}
+              >
+                {l.status === "ao_vivo" && <span className="pulse">● </span>}{STATUS_LABEL[l.status]}
+              </button>
+              <button onClick={() => del(l.id)} style={{ background: "none", border: "none", color: "var(--text-dim)", cursor: "pointer", fontSize: 16, padding: "0 4px" }}>✕</button>
+            </div>
+            {/* Miniatura */}
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              {l.image_url && (
+                <img src={l.image_url} alt="capa" style={{ width: 80, height: 45, objectFit: "cover", border: "1px solid var(--border)", flexShrink: 0 }} />
+              )}
+              <input
+                className="input"
+                defaultValue={l.image_url}
+                onBlur={(e) => updateField(l.id, "image_url", e.target.value)}
+                style={{ fontSize: 12, padding: "6px 8px", flex: 1 }}
+                placeholder="URL da miniatura (capa) — cole o link da imagem"
+              />
+            </div>
           </div>
         ))}
       </div>
 
       <div className="card" style={{ padding: "20px 20px" }}>
         <p className="label" style={{ marginBottom: 14 }}>Nova aula</p>
-        <form onSubmit={addLesson} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr auto", gap: 10 }}>
-          <div>
-            <label className="label">Data</label>
-            <input className="input" type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required />
+        <form onSubmit={addLesson} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10 }}>
+            <div>
+              <label className="label">Data</label>
+              <input className="input" type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required />
+            </div>
+            <div>
+              <label className="label">Horário</label>
+              <input className="input" type="time" value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} required />
+            </div>
+            <div>
+              <label className="label">Matéria</label>
+              <input className="input" placeholder="Ex: Contratos" value={form.materia} onChange={(e) => setForm({ ...form, materia: e.target.value })} required />
+            </div>
+            <div>
+              <label className="label">Palestrante</label>
+              <input className="input" placeholder="Nome" value={form.palestrante} onChange={(e) => setForm({ ...form, palestrante: e.target.value })} />
+            </div>
           </div>
-          <div>
-            <label className="label">Horário</label>
-            <input className="input" type="time" value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} required />
-          </div>
-          <div>
-            <label className="label">Matéria</label>
-            <input className="input" placeholder="Ex: Contratos" value={form.materia} onChange={(e) => setForm({ ...form, materia: e.target.value })} required />
-          </div>
-          <div>
-            <label className="label">Palestrante</label>
-            <input className="input" placeholder="Nome" value={form.palestrante} onChange={(e) => setForm({ ...form, palestrante: e.target.value })} />
-          </div>
-          <div style={{ alignSelf: "flex-end" }}>
-            <button className="btn-green" type="submit" style={{ height: 42, padding: "0 20px" }}>+ Adicionar</button>
+          <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
+            <div style={{ flex: 1 }}>
+              <label className="label">URL da Miniatura (capa)</label>
+              <input className="input" type="url" placeholder="https://… (opcional)" value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} />
+            </div>
+            <button className="btn-green" type="submit" style={{ height: 42, padding: "0 20px", flexShrink: 0 }}>+ Adicionar</button>
           </div>
         </form>
       </div>

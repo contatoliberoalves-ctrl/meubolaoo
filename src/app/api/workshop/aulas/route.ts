@@ -26,6 +26,7 @@ export async function POST(req: Request) {
       materia: body.materia,
       palestrante: body.palestrante ?? "",
       youtube_url: body.youtube_url ?? "",
+      image_url: body.image_url ?? "",
       sort_order: body.sort_order ?? 0,
     },
   });
