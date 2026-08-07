@@ -4,35 +4,48 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 
 type Student = { id: string; name: string; points: number; watched: string[] };
-type Lesson = { id: string; date: string; time: string; materia: string; palestrante: string; status: string };
-type Aviso = { id: string; text: string; active: boolean; created_at: string };
+type Lesson = { id: string; date: string; time: string; materia: string; palestrante: string; status: string; image_url?: string };
+type Aviso = { id: string; text: string; active: boolean };
 
 function level(pts: number) { return Math.floor(pts / 50) + 1; }
 function xpInLevel(pts: number) { return pts % 50; }
 
-function Countdown({ lessons }: { lessons: Lesson[] }) {
-  const [tick, setTick] = useState(0);
-  useEffect(() => { const id = setInterval(() => setTick((t) => t + 1), 1000); return () => clearInterval(id); }, []);
-  const now = Date.now();
-  const next = lessons.filter((l) => l.status === "agendada").map((l) => ({ l, t: new Date(`${l.date}T${l.time}:00`).getTime() })).filter(({ t }) => t > now).sort((a, b) => a.t - b.t)[0];
-  if (!next) return <div style={{ color: "var(--text-muted)", fontSize: 14 }}>Todas as aulas já foram realizadas.</div>;
-  const diff = Math.max(0, next.t - now);
-  const days = Math.floor(diff / 86400000);
+function formatDate(d: string) {
+  const [y, m, day] = d.split("-");
+  const months = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+  return `${parseInt(day)} ${months[parseInt(m) - 1]}`;
+}
+
+function Countdown({ lesson }: { lesson: Lesson }) {
+  const [diff, setDiff] = useState(0);
+  useEffect(() => {
+    const target = new Date(`${lesson.date}T${lesson.time}:00`).getTime();
+    const update = () => setDiff(Math.max(0, target - Date.now()));
+    update();
+    const id = setInterval(update, 1000);
+    return () => clearInterval(id);
+  }, [lesson]);
+
+  const days  = Math.floor(diff / 86400000);
   const hours = Math.floor((diff % 86400000) / 3600000);
-  const mins = Math.floor((diff % 3600000) / 60000);
-  const secs = Math.floor((diff % 60000) / 1000);
+  const mins  = Math.floor((diff % 3600000) / 60000);
+  const secs  = Math.floor((diff % 60000) / 1000);
+
   return (
-    <div>
-      <p className="label" style={{ marginBottom: 10 }}>Próxima aula</p>
-      <p style={{ fontFamily: "Archivo, sans-serif", fontWeight: 700, fontSize: 15, marginBottom: 12 }}>{next.l.materia}</p>
-      <div style={{ display: "flex", gap: 8 }}>
-        {[{ v: days, l: "dias" }, { v: hours, l: "h" }, { v: mins, l: "min" }, { v: secs, l: "seg" }].map(({ v, l }) => (
-          <div key={l} style={{ background: "var(--bg)", border: "1px solid var(--border)", padding: "10px 14px", textAlign: "center", minWidth: 52 }}>
-            <div style={{ fontFamily: "Archivo, sans-serif", fontWeight: 900, fontSize: 22, color: "var(--green)" }}>{String(v).padStart(2, "0")}</div>
-            <div style={{ fontSize: 10, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.06em" }}>{l}</div>
+    <div style={{ display: "flex", gap: 10 }}>
+      {[{ v: days, l: "DIAS" }, { v: hours, l: "HORAS" }, { v: mins, l: "MIN" }, { v: secs, l: "SEG" }].map(({ v, l }) => (
+        <div key={l} style={{ textAlign: "center" }}>
+          <div style={{
+            fontFamily: "Archivo, sans-serif", fontWeight: 900, fontSize: 32,
+            color: "var(--green)", lineHeight: 1, minWidth: 56,
+            background: "rgba(57,255,106,0.06)", border: "1px solid rgba(57,255,106,0.2)",
+            padding: "10px 12px",
+          }}>
+            {String(v).padStart(2, "0")}
           </div>
-        ))}
-      </div>
+          <div style={{ fontSize: 9, color: "var(--text-dim)", letterSpacing: "0.1em", marginTop: 4 }}>{l}</div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -48,7 +61,6 @@ export default function AlunoHome() {
       fetch("/api/workshop/aulas").then((r) => r.json()),
       fetch("/api/workshop/avisos").then((r) => r.json()),
     ]);
-    // Admin preview: provide default student shape
     setStudent(me.role === "admin"
       ? { id: "admin", name: "Admin (preview)", points: 0, watched: [] }
       : me);
@@ -58,90 +70,234 @@ export default function AlunoHome() {
 
   useEffect(() => { load(); }, [load]);
 
-  if (!student) return <p style={{ color: "var(--text-dim)" }}>Carregando…</p>;
+  if (!student) return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "40vh" }}>
+      <p style={{ color: "var(--text-dim)", fontSize: 14 }}>Carregando…</p>
+    </div>
+  );
 
   const totalLessons = lessons.length;
   const watchedCount = student.watched.length;
   const pct = totalLessons > 0 ? Math.round((watchedCount / totalLessons) * 100) : 0;
   const lvl = level(student.points);
-  const xp = xpInLevel(student.points);
-  const circumference = 2 * Math.PI * 54;
-  const days = [...new Set(lessons.map((l) => l.date))].sort();
-  const upcomingLessons = lessons.filter((l) => l.status === "agendada").sort((a, b) => `${a.date}T${a.time}`.localeCompare(`${b.date}T${b.time}`)).slice(0, 5);
+  const xp  = xpInLevel(student.points);
+
+  const nextLesson = lessons
+    .filter((l) => l.status === "agendada")
+    .map((l) => ({ ...l, t: new Date(`${l.date}T${l.time}:00`).getTime() }))
+    .filter(({ t }) => t > Date.now())
+    .sort((a, b) => a.t - b.t)[0];
+
+  const liveLesson = lessons.find((l) => l.status === "ao_vivo");
+
+  const recentLessons = lessons
+    .filter((l) => l.status === "gravada")
+    .slice(-4)
+    .reverse();
+
+  const upcomingLessons = lessons
+    .filter((l) => l.status === "agendada")
+    .sort((a, b) => `${a.date}T${a.time}`.localeCompare(`${b.date}T${b.time}`))
+    .slice(0, 4);
+
+  const firstName = student.name.split(" ")[0];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+
+      {/* ── Avisos ─────────────────────────────────────── */}
       {avisos.map((a) => (
-        <div key={a.id} className="accent-left" style={{ background: "var(--highlight)", padding: "14px 18px" }}>
-          <p style={{ fontSize: 14, color: "var(--text-muted)" }}>{a.text}</p>
+        <div key={a.id} style={{
+          background: "rgba(57,255,106,0.06)", border: "1px solid rgba(57,255,106,0.25)",
+          borderLeft: "4px solid var(--green)", padding: "14px 18px",
+          display: "flex", alignItems: "center", gap: 12,
+        }}>
+          <span style={{ fontSize: 16 }}>📢</span>
+          <p style={{ fontSize: 14, color: "var(--text-muted)", lineHeight: 1.5 }}>{a.text}</p>
         </div>
       ))}
 
-      <div className="card glow-bg" style={{ padding: "28px 32px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32 }}>
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 20 }}>
-            <div style={{ width: 56, height: 56, background: "var(--green)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Archivo, sans-serif", fontWeight: 900, fontSize: 22, color: "#000" }}>{student.name.charAt(0).toUpperCase()}</div>
-            <div>
-              <div style={{ fontFamily: "Archivo, sans-serif", fontWeight: 800, fontSize: 18 }}>{student.name}</div>
-              <div style={{ color: "var(--text-dim)", fontSize: 13 }}>Nível {lvl}</div>
+      {/* ── Aula ao vivo ────────────────────────────────── */}
+      {liveLesson && (
+        <Link href={`/aluno/aulas/${liveLesson.id}`} style={{ textDecoration: "none" }}>
+          <div style={{
+            background: "rgba(57,255,106,0.1)", border: "2px solid var(--green)",
+            padding: "20px 24px", display: "flex", alignItems: "center", justifyContent: "space-between",
+            cursor: "pointer",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <span style={{ fontSize: 22 }}>🔴</span>
+              <div>
+                <div style={{ fontFamily: "Archivo, sans-serif", fontWeight: 900, fontSize: 16, color: "var(--green)" }}>
+                  AO VIVO AGORA
+                </div>
+                <div style={{ fontSize: 14, color: "var(--text-muted)", marginTop: 2 }}>{liveLesson.materia}</div>
+              </div>
             </div>
+            <span style={{ fontFamily: "Archivo, sans-serif", fontWeight: 700, color: "var(--green)", fontSize: 14 }}>
+              Entrar →
+            </span>
           </div>
-          <p className="label">XP</p>
-          <div style={{ background: "var(--border)", height: 6, marginBottom: 4 }}>
-            <div style={{ background: "var(--green)", height: 6, width: `${(xp / 50) * 100}%` }} />
-          </div>
-          <p style={{ fontSize: 12, color: "var(--text-dim)" }}>{xp} / 50 XP · {student.points} pontos totais</p>
-        </div>
-        <div style={{ borderLeft: "1px solid var(--border)", paddingLeft: 32 }}>
-          <Countdown lessons={lessons} />
-        </div>
-      </div>
+        </Link>
+      )}
 
-      <div className="card" style={{ padding: "24px 28px" }}>
-        <p className="label" style={{ marginBottom: 16 }}>Progresso geral</p>
-        <div style={{ display: "flex", alignItems: "center", gap: 28 }}>
-          <svg width={120} height={120} style={{ flexShrink: 0 }}>
-            <circle cx={60} cy={60} r={54} fill="none" stroke="var(--border)" strokeWidth={8} />
-            <circle cx={60} cy={60} r={54} fill="none" stroke="var(--green)" strokeWidth={8} strokeDasharray={circumference} strokeDashoffset={circumference * (1 - pct / 100)} strokeLinecap="butt" transform="rotate(-90 60 60)" />
-            <text x={60} y={65} textAnchor="middle" fill="#fff" fontFamily="Archivo, sans-serif" fontWeight="900" fontSize={22}>{pct}%</text>
-          </svg>
-          <div style={{ flex: 1 }}>
-            <div style={{ display: "flex", gap: 3, flexWrap: "wrap", marginBottom: 16 }}>
+      {/* ── Hero: boas-vindas + progresso ──────────────── */}
+      <div style={{
+        display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16,
+      }}>
+        {/* Boas-vindas */}
+        <div className="card" style={{ padding: "28px 28px" }}>
+          <p style={{ color: "var(--text-dim)", fontSize: 13, marginBottom: 6 }}>Bem-vindo de volta,</p>
+          <h1 style={{ fontFamily: "Archivo, sans-serif", fontWeight: 900, fontSize: 26, marginBottom: 20, letterSpacing: "-0.02em" }}>
+            {firstName} 👋
+          </h1>
+
+          {/* XP */}
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+              <span style={{ fontSize: 12, color: "var(--text-dim)", fontFamily: "Archivo, sans-serif", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                Nível {lvl}
+              </span>
+              <span style={{ fontSize: 12, color: "var(--text-dim)" }}>{xp} / 50 XP</span>
+            </div>
+            <div style={{ background: "var(--border)", height: 6, borderRadius: 0 }}>
+              <div style={{ background: "var(--green)", height: 6, width: `${(xp / 50) * 100}%`, transition: "width 0.6s ease" }} />
+            </div>
+            <p style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 6 }}>{student.points} pontos totais</p>
+          </div>
+
+          {/* Stats */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            {[
+              { label: "Aulas assistidas", value: watchedCount },
+              { label: "Total de aulas", value: totalLessons },
+            ].map((s) => (
+              <div key={s.label} style={{ background: "var(--highlight)", padding: "12px 14px" }}>
+                <div style={{ fontFamily: "Archivo, sans-serif", fontWeight: 900, fontSize: 22, color: "var(--green)" }}>{s.value}</div>
+                <div style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 2 }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Progresso + próxima aula */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {/* Progresso geral */}
+          <div className="card" style={{ padding: "22px 24px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <p className="label">Progresso geral</p>
+              <span style={{ fontFamily: "Archivo, sans-serif", fontWeight: 900, fontSize: 20, color: "var(--green)" }}>{pct}%</span>
+            </div>
+            <div style={{ background: "var(--border)", height: 10, marginBottom: 14 }}>
+              <div style={{ background: "var(--green)", height: 10, width: `${pct}%`, transition: "width 0.6s ease" }} />
+            </div>
+            <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
               {lessons.map((l) => (
-                <div key={l.id} style={{ width: 16, height: 16, background: student.watched.includes(l.id) ? "var(--green)" : "var(--border)" }} title={l.materia} />
+                <div
+                  key={l.id}
+                  title={l.materia}
+                  style={{
+                    width: 14, height: 14,
+                    background: student.watched.includes(l.id) ? "var(--green)" : "var(--border)",
+                    transition: "background 0.2s",
+                  }}
+                />
               ))}
             </div>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              {days.map((d, i) => {
-                const dayLessons = lessons.filter((l) => l.date === d);
-                const allWatched = dayLessons.every((l) => student.watched.includes(l.id));
-                return (
-                  <div key={d} style={{ width: 36, height: 36, border: `2px solid ${allWatched ? "var(--green)" : "var(--border)"}`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Archivo, sans-serif", fontWeight: 800, fontSize: 13, color: allWatched ? "var(--green)" : "var(--text-dim)" }} title={`Dia ${i + 1} · ${d}`}>
-                    {allWatched ? "✓" : i + 1}
-                  </div>
-                );
-              })}
-            </div>
           </div>
+
+          {/* Countdown */}
+          {nextLesson && (
+            <div className="card" style={{ padding: "22px 24px", flex: 1 }}>
+              <p className="label" style={{ marginBottom: 8 }}>Próxima aula</p>
+              <p style={{ fontFamily: "Archivo, sans-serif", fontWeight: 700, fontSize: 14, marginBottom: 14, color: "var(--text-muted)" }}>
+                {nextLesson.materia}
+                <span style={{ fontWeight: 400, color: "var(--text-dim)", fontSize: 12, marginLeft: 8 }}>
+                  {formatDate(nextLesson.date)} · {nextLesson.time}
+                </span>
+              </p>
+              <Countdown lesson={nextLesson} />
+            </div>
+          )}
         </div>
       </div>
 
-      {upcomingLessons.length > 0 && (
-        <div className="card" style={{ padding: "24px 28px" }}>
-          <p className="label" style={{ marginBottom: 14 }}>Próximas aulas</p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-            {upcomingLessons.map((l) => (
-              <Link key={l.id} href={`/aluno/aulas/${l.id}`} className="accent-left" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", borderBottom: "1px solid var(--border)", textDecoration: "none", color: "var(--text)" }}>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: 14 }}>{l.materia}</div>
-                  <div style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 2 }}>{l.date} · {l.time} · {l.palestrante}</div>
+      {/* ── Aulas recentes (gravadas) ────────────────────── */}
+      {recentLessons.length > 0 && (
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+            <p className="label">Aulas disponíveis</p>
+            <Link href="/aluno/aulas" style={{ fontSize: 12, color: "var(--green)", textDecoration: "none", fontFamily: "Archivo, sans-serif", fontWeight: 700 }}>
+              Ver todas →
+            </Link>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
+            {recentLessons.map((l) => (
+              <Link key={l.id} href={`/aluno/aulas/${l.id}`} style={{ textDecoration: "none" }}>
+                <div className="card" style={{ overflow: "hidden", transition: "border-color 0.15s" }}>
+                  {/* Thumbnail */}
+                  <div style={{
+                    height: 100, background: "var(--highlight)",
+                    backgroundImage: l.image_url ? `url(${l.image_url})` : undefined,
+                    backgroundSize: "cover", backgroundPosition: "center",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 28,
+                  }}>
+                    {!l.image_url && "🎓"}
+                  </div>
+                  <div style={{ padding: "12px 14px" }}>
+                    <div style={{ fontSize: 12, color: "var(--green)", fontFamily: "Archivo, sans-serif", fontWeight: 700, marginBottom: 4 }}>
+                      {student.watched.includes(l.id) ? "✓ Assistida" : "Gravada"}
+                    </div>
+                    <div style={{ fontWeight: 600, fontSize: 13, color: "var(--text)", lineHeight: 1.3 }}>{l.materia}</div>
+                    <div style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 4 }}>{l.palestrante}</div>
+                  </div>
                 </div>
-                <span style={{ color: "var(--green)", fontSize: 18 }}>→</span>
               </Link>
             ))}
           </div>
         </div>
       )}
+
+      {/* ── Próximas aulas agendadas ─────────────────────── */}
+      {upcomingLessons.length > 0 && (
+        <div>
+          <p className="label" style={{ marginBottom: 14 }}>Agenda</p>
+          <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+            {upcomingLessons.map((l, i) => (
+              <div
+                key={l.id}
+                style={{
+                  display: "flex", alignItems: "center", gap: 18,
+                  padding: "16px 20px",
+                  borderBottom: i < upcomingLessons.length - 1 ? "1px solid var(--border)" : "none",
+                }}
+              >
+                <div style={{ textAlign: "center", minWidth: 40, flexShrink: 0 }}>
+                  <div style={{ fontFamily: "Archivo, sans-serif", fontWeight: 900, fontSize: 18, color: "var(--green)", lineHeight: 1 }}>
+                    {l.date.split("-")[2]}
+                  </div>
+                  <div style={{ fontSize: 10, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                    {["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"][parseInt(l.date.split("-")[1]) - 1]}
+                  </div>
+                </div>
+                <div style={{ width: 1, height: 36, background: "var(--border)", flexShrink: 0 }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 600, fontSize: 14 }}>{l.materia}</div>
+                  <div style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 2 }}>{l.palestrante} · {l.time}</div>
+                </div>
+                <div style={{
+                  fontSize: 11, fontFamily: "Archivo, sans-serif", fontWeight: 700,
+                  color: "var(--text-dim)", border: "1px solid var(--border)", padding: "3px 8px",
+                }}>
+                  AGENDADA
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
