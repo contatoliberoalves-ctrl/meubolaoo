@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 // ─── Types ───────────────────────────────────────────────────────────────────
 type Lesson = { id: string; date: string; time: string; materia: string; palestrante: string; youtube_url: string; image_url: string; status: string };
 type Student = { id: string; name: string; email: string; points: number; watched: number; total: number; progress: number };
-type Material = { id: string; materia: string; title: string; url: string };
+type Material = { id: string; materia: string; title: string; url: string; image_url: string };
 type Aviso = { id: string; text: string; active: boolean; created_at: string };
 type Comment = { id: string; lesson_id: string; student_name: string; text: string; status: string; created_at: string; lesson?: { materia: string } };
 
