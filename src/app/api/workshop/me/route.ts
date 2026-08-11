@@ -14,9 +14,21 @@ export async function GET() {
 
   const student = await prisma.wStudent.findUnique({
     where: { id: session.id },
-    include: { watched: { select: { lesson_id: true } } },
+    include: {
+      watched: {
+        select: { lesson_id: true, watched_at: true },
+        orderBy: { watched_at: "desc" },
+      },
+    },
   });
   if (!student) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
+
+  // Última aula assistida com dados completos
+  let last_lesson = null;
+  if (student.watched.length > 0) {
+    const lastId = student.watched[0].lesson_id;
+    last_lesson = await prisma.wLesson.findUnique({ where: { id: lastId } });
+  }
 
   return NextResponse.json({
     role: "student",
@@ -24,5 +36,6 @@ export async function GET() {
     name: student.name,
     points: student.points,
     watched: student.watched.map((w) => w.lesson_id),
+    last_lesson,
   });
 }

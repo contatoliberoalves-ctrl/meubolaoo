@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 
-type Student = { id: string; name: string; points: number; watched: string[] };
+type LastLesson = { id: string; materia: string; palestrante: string; image_url?: string };
+type Student = { id: string; name: string; points: number; watched: string[]; last_lesson?: LastLesson | null };
 type Lesson  = { id: string; date: string; time: string; materia: string; palestrante: string; status: string; image_url?: string };
 type Aviso   = { id: string; text: string; active: boolean };
 
@@ -54,7 +55,7 @@ export default function AlunoHome() {
       fetch("/api/workshop/aulas").then((r) => r.json()),
       fetch("/api/workshop/avisos").then((r) => r.json()),
     ]);
-    setStudent(me.role === "admin" ? { id: "admin", name: "Admin (preview)", points: 0, watched: [] } : me);
+    setStudent(me.role === "admin" ? { id: "admin", name: "Admin (preview)", points: 0, watched: [], last_lesson: null } : me);
     setLessons(aulas.aulas ?? []);
     setAvisos((av.avisos ?? []).filter((a: Aviso) => a.active));
   }, []);
@@ -98,6 +99,43 @@ export default function AlunoHome() {
           <p style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.6, margin: 0 }}>{a.text}</p>
         </div>
       ))}
+
+      {/* ── Continue de onde parou ── */}
+      {student.last_lesson && (
+        <Link href={`/aluno/aulas/${student.last_lesson.id}`} style={{ textDecoration: "none" }}>
+          <div style={{
+            display: "flex", alignItems: "center", gap: 0,
+            background: "var(--sidebar)", border: "1px solid var(--border)",
+            overflow: "hidden", transition: "border-color 0.2s",
+          }}
+            onMouseEnter={(e) => (e.currentTarget.style.borderColor = "var(--green)")}
+            onMouseLeave={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
+          >
+            {/* Mini thumbnail */}
+            <div style={{
+              width: 80, minHeight: 56, flexShrink: 0,
+              background: student.last_lesson.image_url
+                ? `url(${student.last_lesson.image_url}) center/cover no-repeat`
+                : "linear-gradient(135deg, #111 0%, #0d1a0f 100%)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              {!student.last_lesson.image_url && <span style={{ fontSize: 20, opacity: 0.3 }}>🎓</span>}
+            </div>
+            <div style={{ padding: "12px 18px", flex: 1 }}>
+              <p style={{ fontSize: 10, color: "var(--green)", fontFamily: "Archivo, sans-serif", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 4 }}>
+                ▶ Continue de onde parou
+              </p>
+              <p style={{ fontFamily: "Archivo, sans-serif", fontWeight: 700, fontSize: 14, color: "#fff" }}>
+                {student.last_lesson.materia}
+              </p>
+              <p style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 2 }}>
+                {student.last_lesson.palestrante}
+              </p>
+            </div>
+            <div style={{ paddingRight: 20, color: "var(--green)", fontSize: 20 }}>→</div>
+          </div>
+        </Link>
+      )}
 
       {/* ── Ao vivo ── */}
       {liveLesson && (

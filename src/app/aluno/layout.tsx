@@ -6,7 +6,9 @@ import { usePathname, useRouter } from "next/navigation";
 const TABS = [
   { href: "/aluno", label: "Início" },
   { href: "/aluno/aulas", label: "Aulas" },
-  { href: "/aluno/materiais", label: "Materiais de apoio" },
+  { href: "/aluno/materiais", label: "Materiais" },
+  { href: "/aluno/ranking", label: "🏆 Ranking" },
+  { href: "/aluno/certificado", label: "🎓 Certificado" },
 ];
 
 export default function AlunoLayout({ children }: { children: React.ReactNode }) {
