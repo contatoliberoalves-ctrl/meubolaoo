@@ -87,6 +87,17 @@ export default function AlunoHome() {
     .filter(({ t }) => t > Date.now())
     .sort((a, b) => a.t - b.t)[0];
   const recorded   = lessons.filter((l) => l.status === "gravada").reverse().slice(0, 6);
+
+  // Progresso por matéria
+  const subjectProgress = (() => {
+    const map: Record<string, { total: number; watched: number }> = {};
+    lessons.forEach((l) => {
+      if (!map[l.materia]) map[l.materia] = { total: 0, watched: 0 };
+      map[l.materia].total++;
+      if (student.watched.includes(l.id)) map[l.materia].watched++;
+    });
+    return Object.entries(map).map(([name, v]) => ({ name, ...v, pct: Math.round((v.watched / v.total) * 100) }));
+  })();
   const upcoming   = lessons
     .filter((l) => l.status === "agendada")
     .sort((a, b) => `${a.date}T${a.time}`.localeCompare(`${b.date}T${b.time}`))
@@ -252,6 +263,37 @@ export default function AlunoHome() {
           ))}
         </div>
       </div>
+
+      {/* ── Progresso por matéria ── */}
+      {subjectProgress.length > 0 && (
+        <div style={{
+          background: "var(--surface)", border: "1px solid var(--border)",
+          borderRadius: 8, padding: "24px 28px",
+        }}>
+          <h2 style={{ fontFamily: "Archivo, sans-serif", fontWeight: 900, fontSize: 16, letterSpacing: "-0.02em", marginBottom: 20 }}>
+            Progresso por matéria
+          </h2>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {subjectProgress.map(({ name, total: t, watched: w, pct: p }) => (
+              <div key={name}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{name}</span>
+                  <span style={{ fontSize: 11, color: p === 100 ? "var(--green)" : "var(--text-dim)", fontFamily: "Archivo, sans-serif", fontWeight: 700 }}>
+                    {w}/{t} {p === 100 ? "✓ Completo" : `${p}%`}
+                  </span>
+                </div>
+                <div style={{ background: "rgba(255,255,255,0.06)", height: 5, borderRadius: 3 }}>
+                  <div style={{
+                    background: p === 100 ? "var(--green)" : "rgba(62,229,122,0.5)",
+                    height: 5, borderRadius: 3, width: `${p}%`,
+                    transition: "width 1s ease",
+                  }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── Próxima aula ── */}
       {nextLesson && !liveLesson && (

@@ -171,6 +171,25 @@ a { color: inherit; }
 .fade-in-up { animation: fadeInUp   0.35s ease both; }
 
 /* ──────────────────────────────────────────────
+   Responsive helpers
+   ────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* grids de cards ficam 1 coluna */
+  [style*="minmax(280px"] { grid-template-columns: 1fr !important; }
+  [style*="minmax(320px"] { grid-template-columns: 1fr !important; }
+
+  /* hero da home: coluna única */
+  [style*="gridTemplateColumns: \"1fr auto\""] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* agenda: sem coluna de capa em telas pequenas */
+  [style*="gridTemplateColumns: \"120px 1fr auto\""] {
+    grid-template-columns: 1fr auto !important;
+  }
+}
+
+/* ──────────────────────────────────────────────
    Scrollbar
    ────────────────────────────────────────────── */
 ::-webkit-scrollbar       { width: 4px; height: 4px; }
