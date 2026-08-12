@@ -12,10 +12,7 @@ function level(pts: number)     { return Math.floor(pts / 50) + 1; }
 function xpInLevel(pts: number) { return pts % 50; }
 
 const MONTHS = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
-function fmtDate(d: string) {
-  const [, m, day] = d.split("-");
-  return `${parseInt(day)} ${MONTHS[parseInt(m) - 1]}`;
-}
+const MONTHS_FULL = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 
 function Countdown({ lesson }: { lesson: Lesson }) {
   const [diff, setDiff] = useState(0);
@@ -34,15 +31,25 @@ function Countdown({ lesson }: { lesson: Lesson }) {
       {[{ v: d, l: "dias" }, { v: h, l: "h" }, { v: m, l: "min" }, { v: s, l: "seg" }].map(({ v, l }) => (
         <div key={l} style={{ textAlign: "center" }}>
           <div style={{
-            fontFamily: "Archivo, sans-serif", fontWeight: 900, fontSize: 26, color: "#000",
-            background: "var(--green)", lineHeight: 1, padding: "8px 10px", minWidth: 46, borderRadius: 4,
+            fontFamily: "Archivo, sans-serif", fontWeight: 900, fontSize: 22, color: "#000",
+            background: "var(--green)", lineHeight: 1, padding: "7px 9px", minWidth: 40, borderRadius: 4,
           }}>{pad(v)}</div>
-          <div style={{ fontSize: 9, color: "var(--text-dim)", letterSpacing: "0.08em", marginTop: 4, textTransform: "uppercase" }}>{l}</div>
+          <div style={{ fontSize: 9, color: "var(--text-dim)", letterSpacing: "0.08em", marginTop: 3, textTransform: "uppercase" }}>{l}</div>
         </div>
       ))}
     </div>
   );
 }
+
+// Cores de acento por índice para o progresso
+const ACCENT_COLORS = [
+  { bar: "#3EE57A", bg: "rgba(62,229,122,0.08)", border: "rgba(62,229,122,0.2)" },
+  { bar: "#60A5FA", bg: "rgba(96,165,250,0.08)", border: "rgba(96,165,250,0.2)" },
+  { bar: "#F472B6", bg: "rgba(244,114,182,0.08)", border: "rgba(244,114,182,0.2)" },
+  { bar: "#FBBF24", bg: "rgba(251,191,36,0.08)",  border: "rgba(251,191,36,0.2)"  },
+  { bar: "#A78BFA", bg: "rgba(167,139,250,0.08)", border: "rgba(167,139,250,0.2)" },
+  { bar: "#34D399", bg: "rgba(52,211,153,0.08)",  border: "rgba(52,211,153,0.2)"  },
+];
 
 export default function AlunoHome() {
   const [student, setStudent] = useState<Student | null>(null);
@@ -67,7 +74,7 @@ export default function AlunoHome() {
   if (!student) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "50vh" }}>
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
-        <div style={{ width: 32, height: 32, border: "2px solid var(--border-2)", borderTopColor: "var(--green)", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+        <div style={{ width: 28, height: 28, border: "2px solid var(--border-2)", borderTopColor: "var(--green)", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
         <p style={{ color: "var(--text-dim)", fontSize: 13 }}>Carregando…</p>
       </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
@@ -87,6 +94,10 @@ export default function AlunoHome() {
     .filter(({ t }) => t > Date.now())
     .sort((a, b) => a.t - b.t)[0];
   const recorded   = lessons.filter((l) => l.status === "gravada").reverse().slice(0, 6);
+  const upcoming   = lessons
+    .filter((l) => l.status === "agendada")
+    .sort((a, b) => `${a.date}T${a.time}`.localeCompare(`${b.date}T${b.time}`))
+    .slice(0, 6);
 
   // Progresso por matéria
   const subjectProgress = (() => {
@@ -96,12 +107,10 @@ export default function AlunoHome() {
       map[l.materia].total++;
       if (student.watched.includes(l.id)) map[l.materia].watched++;
     });
-    return Object.entries(map).map(([name, v]) => ({ name, ...v, pct: Math.round((v.watched / v.total) * 100) }));
+    return Object.entries(map).map(([name, v]) => ({
+      name, ...v, pct: Math.round((v.watched / v.total) * 100),
+    }));
   })();
-  const upcoming   = lessons
-    .filter((l) => l.status === "agendada")
-    .sort((a, b) => `${a.date}T${a.time}`.localeCompare(`${b.date}T${b.time}`))
-    .slice(0, 5);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
@@ -188,59 +197,193 @@ export default function AlunoHome() {
         </Link>
       )}
 
-      {/* ── Hero ── */}
+      {/* ══════════════════════════════════════════
+          ── AGENDA com capas grandes ──
+          ══════════════════════════════════════════ */}
+      {upcoming.length > 0 && (
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <h2 style={{ fontFamily: "Archivo, sans-serif", fontWeight: 900, fontSize: 18, letterSpacing: "-0.02em" }}>
+              Próximas aulas
+            </h2>
+            <Link href="/aluno/aulas" style={{ fontSize: 12, color: "var(--green)", textDecoration: "none", fontFamily: "Archivo, sans-serif", fontWeight: 700 }}>
+              Ver todas →
+            </Link>
+          </div>
+
+          {/* Primeira aula em destaque se houver nextLesson */}
+          {nextLesson && !liveLesson && (
+            <div style={{
+              position: "relative", borderRadius: 8, overflow: "hidden",
+              border: "1px solid var(--border)", marginBottom: 12,
+              transition: "border-color 0.2s, box-shadow 0.2s",
+            }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = "rgba(62,229,122,0.35)";
+                e.currentTarget.style.boxShadow = "0 8px 32px rgba(0,0,0,0.4)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = "var(--border)";
+                e.currentTarget.style.boxShadow = "none";
+              }}
+            >
+              {/* Capa grande */}
+              <div style={{
+                height: 200,
+                background: nextLesson.image_url
+                  ? `url(${nextLesson.image_url}) center/cover no-repeat`
+                  : "linear-gradient(135deg, #0E0E1A 0%, #131325 50%, #0E1A13 100%)",
+                position: "relative",
+              }}>
+                {!nextLesson.image_url && (
+                  <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <span style={{ fontSize: 48, opacity: 0.08 }}>🎓</span>
+                  </div>
+                )}
+                {/* Overlay gradiente */}
+                <div style={{
+                  position: "absolute", inset: 0,
+                  background: "linear-gradient(to top, rgba(12,12,18,0.92) 0%, rgba(12,12,18,0.3) 60%, transparent 100%)",
+                }} />
+                {/* Badge PRÓXIMA */}
+                <div style={{
+                  position: "absolute", top: 14, left: 14,
+                  background: "rgba(62,229,122,0.15)", border: "1px solid rgba(62,229,122,0.3)",
+                  borderRadius: 4, padding: "4px 10px",
+                  fontFamily: "Archivo, sans-serif", fontWeight: 700, fontSize: 10,
+                  color: "var(--green)", letterSpacing: "0.10em", textTransform: "uppercase",
+                }}>
+                  Próxima
+                </div>
+                {/* Info sobre a imagem */}
+                <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "16px 20px" }}>
+                  <p style={{
+                    fontFamily: "Archivo, sans-serif", fontWeight: 900, fontSize: 18,
+                    color: "#fff", lineHeight: 1.25, marginBottom: 6,
+                    textShadow: "0 1px 8px rgba(0,0,0,0.6)",
+                  }}>
+                    {nextLesson.materia}
+                  </p>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <p style={{ fontSize: 12, color: "rgba(255,255,255,0.6)" }}>
+                      {nextLesson.palestrante} · {parseInt(nextLesson.date.split("-")[2])} de {MONTHS_FULL[parseInt(nextLesson.date.split("-")[1]) - 1]} · {nextLesson.time}
+                    </p>
+                    <Countdown lesson={nextLesson} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Restante da agenda — grid de cards com capa */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 10 }}>
+            {upcoming
+              .filter((l) => l.id !== nextLesson?.id)
+              .map((l) => {
+                const day   = l.date.split("-")[2];
+                const month = MONTHS[parseInt(l.date.split("-")[1]) - 1];
+                return (
+                  <div key={l.id} style={{
+                    borderRadius: 6, overflow: "hidden",
+                    border: "1px solid var(--border)",
+                    background: "var(--surface)",
+                    transition: "border-color 0.2s, transform 0.15s, box-shadow 0.15s",
+                    cursor: "default",
+                  }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = "translateY(-2px)";
+                      e.currentTarget.style.boxShadow = "0 6px 24px rgba(0,0,0,0.35)";
+                      e.currentTarget.style.borderColor = "var(--border-2)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.boxShadow = "none";
+                      e.currentTarget.style.borderColor = "var(--border)";
+                    }}
+                  >
+                    {/* Capa 16:9 */}
+                    <div style={{
+                      aspectRatio: "16/9", position: "relative",
+                      background: l.image_url
+                        ? `url(${l.image_url}) center/cover no-repeat`
+                        : "linear-gradient(135deg, #0E0E1A 0%, #1A1325 100%)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      {!l.image_url && <span style={{ fontSize: 28, opacity: 0.1 }}>🎓</span>}
+                      <div style={{
+                        position: "absolute", inset: 0,
+                        background: "linear-gradient(to top, rgba(12,12,18,0.7) 0%, transparent 60%)",
+                      }} />
+                      {/* Data sobre a imagem */}
+                      <div style={{
+                        position: "absolute", bottom: 8, left: 10,
+                        display: "flex", alignItems: "baseline", gap: 4,
+                      }}>
+                        <span style={{ fontFamily: "Archivo, sans-serif", fontWeight: 900, fontSize: 20, color: "var(--green)", lineHeight: 1 }}>
+                          {day}
+                        </span>
+                        <span style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                          {month}
+                        </span>
+                      </div>
+                      {/* Horário */}
+                      <div style={{
+                        position: "absolute", bottom: 8, right: 10,
+                        fontSize: 10, color: "rgba(255,255,255,0.45)", fontFamily: "Archivo, sans-serif", fontWeight: 700,
+                      }}>
+                        {l.time}
+                      </div>
+                    </div>
+                    {/* Info */}
+                    <div style={{ padding: "12px 14px" }}>
+                      <p style={{ fontFamily: "Archivo, sans-serif", fontWeight: 700, fontSize: 13, color: "var(--text)", lineHeight: 1.3, marginBottom: 3 }}>
+                        {l.materia}
+                      </p>
+                      <p style={{ fontSize: 11, color: "var(--text-dim)" }}>{l.palestrante}</p>
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════
+          ── HERO / STATS ──
+          ══════════════════════════════════════════ */}
       <div style={{
         background: "var(--surface)",
         border: "1px solid var(--border)",
         borderRadius: 8,
-        padding: "36px 40px",
-        display: "grid", gridTemplateColumns: "1fr auto", gap: 40, alignItems: "center",
+        padding: "32px 36px",
+        display: "grid", gridTemplateColumns: "1fr auto", gap: 36, alignItems: "center",
         position: "relative", overflow: "hidden",
       }}>
-        {/* Glow sutil atrás */}
         <div style={{
           position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
           background: "radial-gradient(ellipse 50% 60% at 0% 50%, rgba(62,229,122,0.05) 0%, transparent 70%)",
           pointerEvents: "none",
         }} />
-
-        {/* Esquerda */}
         <div style={{ position: "relative" }}>
-          <p style={{ color: "var(--text-dim)", fontSize: 12, marginBottom: 6, letterSpacing: "0.04em" }}>
+          <p style={{ color: "var(--text-dim)", fontSize: 12, marginBottom: 4, letterSpacing: "0.04em" }}>
             Bem-vindo de volta
           </p>
-          <h1 style={{
-            fontFamily: "Archivo, sans-serif", fontWeight: 900,
-            fontSize: 38, letterSpacing: "-0.03em",
-            color: "var(--text)", marginBottom: 28, lineHeight: 1,
-          }}>
+          <h1 style={{ fontFamily: "Archivo, sans-serif", fontWeight: 900, fontSize: 34, letterSpacing: "-0.03em", color: "var(--text)", marginBottom: 24, lineHeight: 1 }}>
             {firstName} 👋
           </h1>
-
-          {/* Progresso geral */}
-          <div style={{ marginBottom: 18 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-              <span style={{ fontSize: 11, color: "var(--text-dim)", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "Archivo, sans-serif", fontWeight: 700 }}>
-                Progresso geral
-              </span>
-              <span style={{ fontSize: 12, color: "var(--green)", fontFamily: "Archivo, sans-serif", fontWeight: 800 }}>
-                {pct}%
-              </span>
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 7 }}>
+              <span style={{ fontSize: 11, color: "var(--text-dim)", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "Archivo, sans-serif", fontWeight: 700 }}>Progresso geral</span>
+              <span style={{ fontSize: 12, color: "var(--green)", fontFamily: "Archivo, sans-serif", fontWeight: 800 }}>{pct}%</span>
             </div>
             <div style={{ background: "rgba(255,255,255,0.06)", height: 6, borderRadius: 3 }}>
               <div style={{ background: "var(--green)", height: 6, borderRadius: 3, width: `${pct}%`, transition: "width 1s ease" }} />
             </div>
-            <p style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 7 }}>
-              {watched} de {total} aulas assistidas
-            </p>
+            <p style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 6 }}>{watched} de {total} aulas assistidas</p>
           </div>
-
-          {/* XP */}
           <div>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-              <span style={{ fontSize: 11, color: "var(--text-dim)", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "Archivo, sans-serif", fontWeight: 700 }}>
-                Nível {lvl}
-              </span>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+              <span style={{ fontSize: 11, color: "var(--text-dim)", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "Archivo, sans-serif", fontWeight: 700 }}>Nível {lvl}</span>
               <span style={{ fontSize: 11, color: "var(--text-dim)" }}>{xp} / 50 XP</span>
             </div>
             <div style={{ background: "rgba(255,255,255,0.06)", height: 3, borderRadius: 2 }}>
@@ -248,70 +391,100 @@ export default function AlunoHome() {
             </div>
           </div>
         </div>
-
-        {/* Direita — stats */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 20, minWidth: 130 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 18, minWidth: 120 }}>
           {[
-            { v: total,          l: "aulas no total",  c: "var(--text-dim)" },
+            { v: total,          l: "aulas no total",  c: "var(--text-muted)" },
             { v: watched,        l: "assistidas",       c: "var(--green)" },
-            { v: student.points, l: "pontos",           c: "var(--text-dim)" },
+            { v: student.points, l: "pontos",           c: "var(--text-muted)" },
           ].map(({ v, l, c }) => (
             <div key={l} style={{ textAlign: "right" }}>
-              <div style={{ fontFamily: "Archivo, sans-serif", fontWeight: 900, fontSize: 34, color: c, lineHeight: 1 }}>{v}</div>
-              <div style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 3, letterSpacing: "0.03em" }}>{l}</div>
+              <div style={{ fontFamily: "Archivo, sans-serif", fontWeight: 900, fontSize: 30, color: c, lineHeight: 1 }}>{v}</div>
+              <div style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 2 }}>{l}</div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* ── Progresso por matéria ── */}
+      {/* ══════════════════════════════════════════
+          ── PROGRESSO POR MATÉRIA — cards visuais ──
+          ══════════════════════════════════════════ */}
       {subjectProgress.length > 0 && (
-        <div style={{
-          background: "var(--surface)", border: "1px solid var(--border)",
-          borderRadius: 8, padding: "24px 28px",
-        }}>
-          <h2 style={{ fontFamily: "Archivo, sans-serif", fontWeight: 900, fontSize: 16, letterSpacing: "-0.02em", marginBottom: 20 }}>
+        <div>
+          <h2 style={{ fontFamily: "Archivo, sans-serif", fontWeight: 900, fontSize: 18, letterSpacing: "-0.02em", marginBottom: 16 }}>
             Progresso por matéria
           </h2>
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            {subjectProgress.map(({ name, total: t, watched: w, pct: p }) => (
-              <div key={name}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{name}</span>
-                  <span style={{ fontSize: 11, color: p === 100 ? "var(--green)" : "var(--text-dim)", fontFamily: "Archivo, sans-serif", fontWeight: 700 }}>
-                    {w}/{t} {p === 100 ? "✓ Completo" : `${p}%`}
-                  </span>
-                </div>
-                <div style={{ background: "rgba(255,255,255,0.06)", height: 5, borderRadius: 3 }}>
-                  <div style={{
-                    background: p === 100 ? "var(--green)" : "rgba(62,229,122,0.5)",
-                    height: 5, borderRadius: 3, width: `${p}%`,
-                    transition: "width 1s ease",
-                  }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 10 }}>
+            {subjectProgress.map(({ name, total: t, watched: w, pct: p }, i) => {
+              const accent = p === 100
+                ? { bar: "#3EE57A", bg: "rgba(62,229,122,0.08)", border: "rgba(62,229,122,0.25)" }
+                : ACCENT_COLORS[i % ACCENT_COLORS.length];
+              return (
+                <div key={name} style={{
+                  background: accent.bg,
+                  border: `1px solid ${accent.border}`,
+                  borderRadius: 8, padding: "18px 20px",
+                  transition: "transform 0.15s, box-shadow 0.15s",
+                }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = "translateY(-1px)";
+                    e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,0,0,0.3)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow = "none";
+                  }}
+                >
+                  {/* Topo: nome + badge */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14, gap: 10 }}>
+                    <p style={{
+                      fontFamily: "Archivo, sans-serif", fontWeight: 700, fontSize: 13,
+                      color: "var(--text)", lineHeight: 1.35, flex: 1,
+                    }}>
+                      {name}
+                    </p>
+                    {p === 100 ? (
+                      <span style={{
+                        background: "rgba(62,229,122,0.15)", color: "var(--green)",
+                        fontFamily: "Archivo, sans-serif", fontWeight: 800, fontSize: 10,
+                        padding: "3px 8px", borderRadius: 3, letterSpacing: "0.06em",
+                        whiteSpace: "nowrap", flexShrink: 0,
+                      }}>✓ OK</span>
+                    ) : (
+                      <span style={{
+                        color: accent.bar, fontFamily: "Archivo, sans-serif",
+                        fontWeight: 900, fontSize: 18, lineHeight: 1, flexShrink: 0,
+                      }}>{p}%</span>
+                    )}
+                  </div>
 
-      {/* ── Próxima aula ── */}
-      {nextLesson && !liveLesson && (
-        <div style={{
-          display: "grid", gridTemplateColumns: "1fr auto", gap: 32, alignItems: "center",
-          background: "var(--surface)", border: "1px solid var(--border)",
-          borderRadius: 8, padding: "22px 28px",
-        }}>
-          <div>
-            <p className="label" style={{ marginBottom: 8 }}>Próxima aula</p>
-            <p style={{ fontFamily: "Archivo, sans-serif", fontWeight: 800, fontSize: 18, marginBottom: 4 }}>
-              {nextLesson.materia}
-            </p>
-            <p style={{ fontSize: 13, color: "var(--text-muted)" }}>
-              {fmtDate(nextLesson.date)} · {nextLesson.time} · {nextLesson.palestrante}
-            </p>
+                  {/* Barra de progresso */}
+                  <div style={{ background: "rgba(255,255,255,0.07)", height: 6, borderRadius: 3, marginBottom: 10 }}>
+                    <div style={{
+                      background: accent.bar, height: 6, borderRadius: 3,
+                      width: `${p}%`, transition: "width 1.2s ease",
+                    }} />
+                  </div>
+
+                  {/* Aulas */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: 11, color: "var(--text-dim)" }}>
+                      {w} de {t} aula{t !== 1 ? "s" : ""}
+                    </span>
+                    {/* Mini dots */}
+                    <div style={{ display: "flex", gap: 3 }}>
+                      {Array.from({ length: t }).map((_, di) => (
+                        <div key={di} style={{
+                          width: 7, height: 7, borderRadius: "50%",
+                          background: di < w ? accent.bar : "rgba(255,255,255,0.1)",
+                          transition: "background 0.3s",
+                        }} />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-          <Countdown lesson={nextLesson} />
         </div>
       )}
 
@@ -378,67 +551,6 @@ export default function AlunoHome() {
         </div>
       )}
 
-      {/* ── Agenda ── */}
-      {upcoming.length > 0 && (
-        <div>
-          <h2 style={{ fontFamily: "Archivo, sans-serif", fontWeight: 900, fontSize: 18, marginBottom: 16, letterSpacing: "-0.02em" }}>
-            Agenda
-          </h2>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {upcoming.map((l) => (
-              <div key={l.id} style={{
-                display: "grid", gridTemplateColumns: "120px 1fr auto",
-                alignItems: "stretch",
-                background: "var(--surface)", border: "1px solid var(--border)",
-                borderRadius: 6, overflow: "hidden",
-                transition: "border-color 0.2s",
-              }}
-                onMouseEnter={(e) => (e.currentTarget.style.borderColor = "var(--border-2)")}
-                onMouseLeave={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
-              >
-                {/* Capa */}
-                <div style={{
-                  background: l.image_url
-                    ? `url(${l.image_url}) center/cover no-repeat`
-                    : "linear-gradient(135deg, #13131C 0%, #1A2030 100%)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  minHeight: 80, position: "relative", flexShrink: 0,
-                }}>
-                  {!l.image_url && <span style={{ fontSize: 24, opacity: 0.12 }}>🎓</span>}
-                  <div style={{
-                    position: "absolute", bottom: 0, left: 0, right: 0,
-                    background: "rgba(0,0,0,0.55)", padding: "4px 8px", textAlign: "center",
-                  }}>
-                    <span style={{ fontFamily: "Archivo, sans-serif", fontWeight: 900, fontSize: 15, color: "var(--green)" }}>
-                      {l.date.split("-")[2]}
-                    </span>
-                    <span style={{ fontSize: 9, color: "var(--text-dim)", marginLeft: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                      {MONTHS[parseInt(l.date.split("-")[1]) - 1]}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Info */}
-                <div style={{ padding: "14px 18px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-                  <div style={{ fontFamily: "Archivo, sans-serif", fontWeight: 700, fontSize: 14, marginBottom: 3 }}>{l.materia}</div>
-                  <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{l.palestrante} · {l.time}</div>
-                </div>
-
-                {/* Badge */}
-                <div style={{ display: "flex", alignItems: "center", padding: "0 18px" }}>
-                  <div style={{
-                    fontSize: 10, fontFamily: "Archivo, sans-serif", fontWeight: 700,
-                    color: "var(--text-dim)", border: "1px solid var(--border-2)",
-                    padding: "4px 10px", borderRadius: 3, letterSpacing: "0.06em", whiteSpace: "nowrap",
-                  }}>
-                    AGENDADA
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
