@@ -23,14 +23,26 @@ export default function PerfilPage() {
 
   useEffect(() => {
     fetch("/api/workshop/me").then((r) => r.json()).then((j) => {
-      setMe(j);
-      setName(j.name ?? "");
+      // Normaliza admin e student para o mesmo shape
+      const normalized: Me = {
+        id:      j.id      ?? "admin",
+        name:    j.name    ?? "Admin",
+        email:   j.email   ?? "",
+        points:  j.points  ?? 0,
+        watched: j.watched ?? [],
+      };
+      setMe(normalized);
+      setName(normalized.name);
     });
   }, []);
+
+  const isAdmin = me?.id === "admin";
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setMsg(null);
+
+    if (isAdmin) { setMsg({ text: "Admin não pode editar o próprio perfil aqui.", ok: false }); return; }
 
     if (newPwd && newPwd !== cfmPwd) {
       setMsg({ text: "As senhas não coincidem.", ok: false }); return;
