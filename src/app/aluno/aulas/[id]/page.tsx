@@ -8,7 +8,9 @@ type Me = { id: string; name: string; watched: string[] };
 type Comment = { id: string; student_name: string; text: string; created_at: string };
 
 function ytEmbed(url: string) {
-  const m = url.match(/(?:v=|youtu\.be\/|embed\/)([A-Za-z0-9_-]{11})/);
+  if (!url) return null;
+  // Suporta: watch?v=, youtu.be/, embed/, /live/, /shorts/
+  const m = url.match(/(?:v=|youtu\.be\/|embed\/|\/live\/|\/shorts\/)([A-Za-z0-9_-]{11})/);
   return m ? `https://www.youtube.com/embed/${m[1]}` : null;
 }
 
@@ -62,7 +64,8 @@ export default function AulaDetail() {
   if (!lesson) return <p style={{ color: "var(--text-dim)" }}>Carregando…</p>;
 
   const embed = ytEmbed(lesson.youtube_url);
-  const canWatch = lesson.status === "ao_vivo" || lesson.status === "gravada";
+  // Mostra o vídeo sempre que houver URL válida; bloqueia apenas se agendada sem URL
+  const canWatch = !!embed;
 
   return (
     <div>
