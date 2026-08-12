@@ -239,8 +239,9 @@ function AvisosTab({ avisos, onRefresh }: { avisos: Aviso[]; onRefresh: () => vo
 
 // ─── Materiais tab ────────────────────────────────────────────────────────────
 function MateriaisTab({ materiais, onRefresh }: { materiais: Material[]; onRefresh: () => void }) {
-  const [form, setForm] = useState({ materia: "", title: "", url: "", image_url: "" });
+  const [form, setForm]         = useState({ materia: "", title: "", url: "", image_url: "" });
   const [uploading, setUploading] = useState(false);
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
 
   async function add(e: React.FormEvent) {
     e.preventDefault();
@@ -249,20 +250,109 @@ function MateriaisTab({ materiais, onRefresh }: { materiais: Material[]; onRefre
   }
 
   async function del(id: string) {
+    if (!confirm("Remover material?")) return;
     await fetch(`/api/workshop/materiais/${id}`, { method: "DELETE" }); onRefresh();
+  }
+
+  async function uploadCapa(id: string, file: File) {
+    setUploadingId(id);
+    try {
+      const fd = new FormData(); fd.append("file", file);
+      const res = await fetch("/api/workshop/upload", { method: "POST", body: fd });
+      const { url } = await res.json();
+      await fetch(`/api/workshop/materiais/${id}`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image_url: url }),
+      });
+      onRefresh();
+    } catch { alert("Erro no upload"); }
+    finally { setUploadingId(null); }
+  }
+
+  async function removeCapa(id: string) {
+    await fetch(`/api/workshop/materiais/${id}`, {
+      method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ image_url: "" }),
+    });
+    onRefresh();
   }
 
   return (
     <div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 24 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 24 }}>
         {materiais.map((m) => (
           <div key={m.id} className="card" style={{ padding: "12px 16px", display: "flex", alignItems: "center", gap: 12 }}>
-            {m.image_url
-              ? <img src={m.image_url} alt="capa" style={{ width: 64, height: 36, objectFit: "cover", border: "1px solid var(--border)", flexShrink: 0 }} />
-              : <div className="badge-green" style={{ fontSize: 10, padding: "2px 6px" }}>PDF</div>
-            }
-            <span style={{ color: "var(--text-dim)", fontSize: 12, minWidth: 100 }}>{m.materia}</span>
+
+            {/* Thumbnail com hover de upload */}
+            <div style={{ position: "relative", flexShrink: 0, width: 80, height: 45 }}>
+              <div style={{
+                width: 80, height: 45,
+                background: m.image_url
+                  ? `url(${m.image_url}) center/cover no-repeat`
+                  : "var(--highlight)",
+                border: "1px solid var(--border)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                overflow: "hidden",
+              }}>
+                {!m.image_url && <span style={{ fontSize: 10, color: "var(--green)", fontFamily: "Archivo, sans-serif", fontWeight: 700 }}>PDF</span>}
+              </div>
+
+              {/* Overlay ao hover com opção de upload/remover */}
+              <label style={{
+                position: "absolute", inset: 0,
+                background: "rgba(0,0,0,0.7)",
+                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                cursor: "pointer", opacity: 0, transition: "opacity 0.2s",
+                fontSize: 10, color: "#fff", gap: 2,
+              }}
+                onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+                onMouseLeave={(e) => (e.currentTarget.style.opacity = "0")}
+                title="Clique para trocar a capa"
+              >
+                {uploadingId === m.id ? (
+                  <span style={{ fontSize: 9 }}>Enviando…</span>
+                ) : (
+                  <>
+                    <span style={{ fontSize: 14 }}>📷</span>
+                    <span>Trocar</span>
+                  </>
+                )}
+                <input
+                  type="file" accept="image/*" style={{ display: "none" }}
+                  disabled={uploadingId === m.id}
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadCapa(m.id, f); }}
+                />
+              </label>
+            </div>
+
+            <span style={{ color: "var(--text-dim)", fontSize: 12, minWidth: 80, flexShrink: 0 }}>{m.materia}</span>
             <span style={{ flex: 1, fontSize: 13 }}>{m.title}</span>
+
+            {/* Botão de upload explícito */}
+            <label style={{
+              display: "flex", alignItems: "center", gap: 5,
+              border: "1px solid var(--border-2)", color: "var(--text-dim)",
+              padding: "5px 10px", fontSize: 11, cursor: "pointer",
+              whiteSpace: "nowrap", opacity: uploadingId === m.id ? 0.5 : 1,
+            }}>
+              {uploadingId === m.id ? "…" : "📷 Capa"}
+              <input
+                type="file" accept="image/*" style={{ display: "none" }}
+                disabled={uploadingId === m.id}
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadCapa(m.id, f); }}
+              />
+            </label>
+
+            {m.image_url && (
+              <button
+                onClick={() => removeCapa(m.id)}
+                title="Remover capa"
+                style={{ background: "none", border: "none", color: "var(--text-dim)", cursor: "pointer", fontSize: 12, padding: "4px 6px" }}
+              >
+                🗑
+              </button>
+            )}
+
             <a href={m.url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--green-dark)", fontSize: 12 }}>↗</a>
             <button onClick={() => del(m.id)} style={{ background: "none", border: "none", color: "var(--text-dim)", cursor: "pointer", fontSize: 16 }}>✕</button>
           </div>
