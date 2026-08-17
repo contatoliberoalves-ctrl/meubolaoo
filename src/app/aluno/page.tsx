@@ -17,7 +17,10 @@ const MONTHS_FULL = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julh
 function Countdown({ lesson }: { lesson: Lesson }) {
   const [diff, setDiff] = useState(0);
   useEffect(() => {
-    const target = new Date(`${lesson.date}T${lesson.time}:00`).getTime();
+    // Força parse como horário LOCAL (sem timezone offset do ISO 8601)
+    const [year, month, day] = lesson.date.split("-").map(Number);
+    const [hour, min] = lesson.time.split(":").map(Number);
+    const target = new Date(year, month - 1, day, hour, min, 0).getTime();
     const upd = () => setDiff(Math.max(0, target - Date.now()));
     upd(); const id = setInterval(upd, 1000); return () => clearInterval(id);
   }, [lesson]);
@@ -88,11 +91,17 @@ export default function AlunoHome() {
   const xp         = xpInLevel(student.points);
   const firstName  = student.name.split(" ")[0];
   const liveLesson = lessons.find((l) => l.status === "ao_vivo");
+
+  // Comparação por string local evita bugs de fuso horário com Date parsing
+  const nowStr = (() => {
+    const n = new Date();
+    const pad = (x: number) => String(x).padStart(2, "0");
+    return `${n.getFullYear()}-${pad(n.getMonth() + 1)}-${pad(n.getDate())}T${pad(n.getHours())}:${pad(n.getMinutes())}`;
+  })();
   const nextLesson = lessons
     .filter((l) => l.status === "agendada")
-    .map((l) => ({ ...l, t: new Date(`${l.date}T${l.time}:00`).getTime() }))
-    .filter(({ t }) => t > Date.now())
-    .sort((a, b) => a.t - b.t)[0];
+    .filter((l) => `${l.date}T${l.time}` > nowStr)
+    .sort((a, b) => `${a.date}T${a.time}`.localeCompare(`${b.date}T${b.time}`))[0];
   const recorded   = lessons.filter((l) => l.status === "gravada").reverse().slice(0, 6);
   const upcoming   = lessons
     .filter((l) => l.status === "agendada")
