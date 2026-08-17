@@ -105,6 +105,7 @@ export default function AlunoHome() {
   const recorded   = lessons.filter((l) => l.status === "gravada").reverse().slice(0, 6);
   const upcoming   = lessons
     .filter((l) => l.status === "agendada")
+    .filter((l) => `${l.date}T${l.time}` > nowStr)   // exclui aulas já passadas
     .sort((a, b) => `${a.date}T${a.time}`.localeCompare(`${b.date}T${b.time}`))
     .slice(0, 6);
 
