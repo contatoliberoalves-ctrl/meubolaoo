@@ -69,8 +69,31 @@ export default function AulaDetail() {
 
   return (
     <div>
+      <style>{`
+        .aula-grid {
+          display: grid;
+          grid-template-columns: 1fr 320px;
+          gap: 24px;
+          align-items: start;
+        }
+        .comments-box {
+          height: 60vh;
+        }
+        @media (max-width: 768px) {
+          .aula-grid {
+            grid-template-columns: 1fr;
+          }
+          .comments-box {
+            height: 400px;
+          }
+          .aula-title {
+            font-size: 18px !important;
+          }
+        }
+      `}</style>
+
       <button onClick={() => router.back()} style={{ background: "none", border: "none", color: "var(--text-dim)", cursor: "pointer", fontSize: 13, marginBottom: 20, display: "flex", alignItems: "center", gap: 6 }}>← Voltar às aulas</button>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 24, alignItems: "start" }}>
+      <div className="aula-grid">
         <div>
           <div style={{ aspectRatio: "16/9", background: "var(--highlight)", position: "relative", marginBottom: 20 }}>
             {canWatch && embed ? (
@@ -79,7 +102,7 @@ export default function AulaDetail() {
               <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-dim)", fontSize: 14 }}>🔒 O link será divulgado em breve</div>
             )}
           </div>
-          <h1 style={{ fontFamily: "Archivo, sans-serif", fontWeight: 900, fontSize: 24, marginBottom: 6 }}>{lesson.materia}</h1>
+          <h1 className="aula-title" style={{ fontFamily: "Archivo, sans-serif", fontWeight: 900, fontSize: 24, marginBottom: 6 }}>{lesson.materia}</h1>
           <p style={{ color: "var(--green-dark)", fontWeight: 600, marginBottom: 4 }}>{lesson.palestrante}</p>
           <p style={{ color: "var(--text-dim)", fontSize: 13, marginBottom: 16 }}>
             {lesson.date} · {lesson.time} · {lesson.status === "ao_vivo" ? <span className="pulse" style={{ color: "var(--green)" }}>● Ao vivo</span> : lesson.status === "gravada" ? <span style={{ color: "var(--green)" }}>Gravada</span> : <span>Agendada</span>}
@@ -90,7 +113,7 @@ export default function AulaDetail() {
             <div className="badge-green" style={{ padding: "8px 16px", fontSize: 13, display: "inline-block" }}>✓ Aula assistida</div>
           )}
         </div>
-        <div className="card-2" style={{ padding: 20, display: "flex", flexDirection: "column", height: "60vh" }}>
+        <div className="card-2 comments-box" style={{ padding: 20, display: "flex", flexDirection: "column" }}>
           <p className="label" style={{ marginBottom: 12 }}>Comentários</p>
           <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 12, marginBottom: 14 }}>
             {comments.length === 0 && <p style={{ color: "var(--text-dim)", fontSize: 13 }}>Nenhum comentário aprovado ainda.</p>}
